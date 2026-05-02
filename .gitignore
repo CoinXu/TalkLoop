@@ -1,0 +1,5 @@
+.codex/settings.local.json
+node_modules/
+dist/
+services/api/node_modules/
+services/api/dist/
