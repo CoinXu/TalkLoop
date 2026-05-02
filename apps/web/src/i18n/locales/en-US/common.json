@@ -1,0 +1,24 @@
+{
+  "actions": {
+    "admin": "Admin",
+    "back": "Back",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "login": "Log in",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "start": "Start"
+  },
+  "appName": "Echo English",
+  "status": {
+    "completed": "Completed",
+    "inProgress": "In progress",
+    "internalTester": "Internal tester",
+    "loggedIn": "Logged in",
+    "notStarted": "Not started"
+  },
+  "states": {
+    "empty": "No data",
+    "loading": "Loading"
+  }
+}

@@ -12,7 +12,8 @@
     "test:integration": "tsx src/scripts/smokeDatabase.ts",
     "db:provision": "tsx src/scripts/provisionDatabase.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "import:learning-unit": "tsx src/scripts/importLearningUnit.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
@@ -23,6 +24,8 @@
     "drizzle-orm": "^0.36.4",
     "fastify": "^4.28.1",
     "ioredis": "^5.4.1",
+    "music-metadata": "^7.14.0",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.13.1",
     "pino": "^9.5.0",
     "zod": "^3.23.8",
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
+    "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.11.10",
     "drizzle-kit": "^0.27.2",
     "tsx": "^4.19.2",

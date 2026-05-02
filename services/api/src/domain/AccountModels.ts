@@ -6,6 +6,10 @@ export interface LoginInput {
   otpCode: string;
 }
 
+export interface RequestOtpInput {
+  destination: string;
+}
+
 export interface AuthSession {
   sessionId: EntityId;
   userId: EntityId;

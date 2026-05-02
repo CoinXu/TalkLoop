@@ -8,7 +8,10 @@ const configSchema = z.object({
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
   LOGIN_METHOD: z.enum(["email_otp", "phone_otp"]).default("email_otp"),
   OBJECT_STORAGE_PUBLIC_BASE_URL: z.string().url().default("http://localhost:9000/bbc-learning-english"),
-  SPEAKING_SCORE_PROVIDER: z.enum(["mock", "external"]).default("mock"),
+  STATIC_ASSET_PUBLIC_BASE_URL: z.string().url().default("http://127.0.0.1:3000"),
+  TRANSCRIPT_SYNC_PROVIDER: z.enum(["basic", "faster_whisper"]).default("basic"),
+  WHISPER_BASE_URL: z.string().url().default("http://127.0.0.1:9001"),
+  SPEAKING_SCORE_PROVIDER: z.enum(["mock", "faster_whisper"]).default("faster_whisper"),
 });
 
 export type AppConfigValues = z.infer<typeof configSchema>;
@@ -46,6 +49,18 @@ export class AppConfig {
 
   get objectStoragePublicBaseUrl(): string {
     return this.values.OBJECT_STORAGE_PUBLIC_BASE_URL;
+  }
+
+  get staticAssetPublicBaseUrl(): string {
+    return this.values.STATIC_ASSET_PUBLIC_BASE_URL;
+  }
+
+  get transcriptSyncProvider(): AppConfigValues["TRANSCRIPT_SYNC_PROVIDER"] {
+    return this.values.TRANSCRIPT_SYNC_PROVIDER;
+  }
+
+  get whisperBaseUrl(): string {
+    return this.values.WHISPER_BASE_URL;
   }
 
   get speakingScoreProvider(): AppConfigValues["SPEAKING_SCORE_PROVIDER"] {

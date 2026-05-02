@@ -1,0 +1,18 @@
+{
+  "continueLearning": "继续学习",
+  "emptyUnits": "暂无可学习单元",
+  "estimatedMinutes": "{{count}} 分钟",
+  "recentScore": "最近评分 {{score}}",
+  "resumeFallback": "上次的单元",
+  "resumeStep": {
+    "default": "继续上次进度",
+    "intensive_listening": "上次停在精听",
+    "listen_original": "上次停在听原音",
+    "score_result": "上次停在评分结果",
+    "speaking_prompt": "上次停在替换说",
+    "target_shadowing": "上次停在跟读"
+  },
+  "reviewAgain": "再说一次",
+  "title": "说出一个地道表达",
+  "unitList": "学习单元"
+}

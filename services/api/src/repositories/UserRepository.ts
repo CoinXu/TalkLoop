@@ -34,6 +34,11 @@ export class UserRepository {
     return created;
   }
 
+  async findUserByDestination(loginDestination: string) {
+    const [user] = await this.db.select().from(users).where(eq(users.loginDestination, loginDestination)).limit(1);
+    return user;
+  }
+
   async createSession(userId: EntityId, expiresAt: Date) {
     const now = this.idGenerator.now();
     const [session] = await this.db
@@ -65,6 +70,10 @@ export class UserRepository {
       .where(eq(sessions.id, sessionId))
       .limit(1);
     return session;
+  }
+
+  async deleteSession(sessionId: EntityId): Promise<void> {
+    await this.db.delete(sessions).where(eq(sessions.id, sessionId));
   }
 
   async upsertProgress(input: {

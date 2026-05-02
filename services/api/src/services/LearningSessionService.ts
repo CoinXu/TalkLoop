@@ -3,11 +3,13 @@ import type { LearningStep, ProgressStatus } from "../domain/Enums.js";
 import type { EntityId } from "../domain/EntityId.js";
 import type { ContentRepository } from "../repositories/ContentRepository.js";
 import type { UserRepository } from "../repositories/UserRepository.js";
+import { AssetUrlResolver } from "./AssetUrlResolver.js";
 
 export class LearningSessionService {
   constructor(
     private readonly contentRepository: ContentRepository,
     private readonly userRepository: UserRepository,
+    private readonly assetUrlResolver: AssetUrlResolver = new AssetUrlResolver(),
   ) {}
 
   async getLearningUnit(unitId: EntityId, user?: { userId: EntityId; isInternalTester: boolean }) {
@@ -20,7 +22,11 @@ export class LearningSessionService {
     }
 
     const progress = user ? await this.userRepository.findProgress(user.userId, unitId) : undefined;
-    return { ...detail, progress };
+    return {
+      ...detail,
+      audio: detail.audio ? { ...detail.audio, url: this.assetUrlResolver.toPublicUrl(detail.audio.url) } : detail.audio,
+      progress,
+    };
   }
 
   async saveProgress(input: { userId: EntityId; unitId: EntityId; currentStep: LearningStep; status: ProgressStatus }) {

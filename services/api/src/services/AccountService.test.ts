@@ -39,4 +39,67 @@ describe("AccountService", () => {
 
     await expect(service.login({ destination: "+8613800000000", otpCode: "123456" })).rejects.toBeInstanceOf(AppError);
   });
+
+  it("rejects registration when the account already exists", async () => {
+    const service = new AccountService(
+      {
+        async findUserByDestination() {
+          return {
+            id: 1001n,
+            loginDestination: "learner@example.com",
+            isInternalTester: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        },
+      } as never,
+      "email_otp",
+    );
+
+    await expect(service.register({ destination: "learner@example.com", otpCode: "123456" })).rejects.toBeInstanceOf(
+      AppError,
+    );
+  });
+
+  it("returns the current authenticated user from a valid session", async () => {
+    const expiresAt = new Date(Date.now() + 1000);
+    const service = new AccountService(
+      {
+        async findSession() {
+          return {
+            sessionId: 2001n,
+            userId: 1001n,
+            isInternalTester: true,
+            expiresAt,
+          };
+        },
+      } as never,
+      "email_otp",
+    );
+
+    const user = await service.getCurrentUser(2001n);
+
+    expect(user).toEqual({
+      sessionId: "2001",
+      userId: "1001",
+      isInternalTester: true,
+      expiresAt,
+    });
+  });
+
+  it("deletes the session on logout", async () => {
+    let deletedSessionId: bigint | undefined;
+    const service = new AccountService(
+      {
+        async deleteSession(sessionId: bigint) {
+          deletedSessionId = sessionId;
+        },
+      } as never,
+      "email_otp",
+    );
+
+    await service.logout(2001n);
+
+    expect(deletedSessionId).toBe(2001n);
+  });
 });

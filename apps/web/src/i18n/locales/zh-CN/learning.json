@@ -1,0 +1,46 @@
+{
+  "answer": {
+    "hide": "隐藏参考答案",
+    "show": "查看参考答案",
+    "title": "参考答案"
+  },
+  "audio": {
+    "currentSegment": "当前句段",
+    "nowPlaying": "正在播放",
+    "pause": "暂停",
+    "play": "播放",
+    "seek": "拖动播放进度",
+    "replaySegment": "重听句段"
+  },
+  "entry": {
+    "difficulty": "难度",
+    "meaning": "中文释义",
+    "minutes": "预计 {{count}} 分钟"
+  },
+  "recorder": {
+    "mine": "我的录音",
+    "recordAgain": "重录",
+    "start": "开始录音",
+    "stop": "结束录音",
+    "submit": "提交评分"
+  },
+  "score": {
+    "completeness": "完整度",
+    "fluency": "流利度",
+    "overall": "总分",
+    "pronunciation": "发音相似度",
+    "result": "评分结果",
+    "target": "评分文本",
+    "tryAgain": "再练一次"
+  },
+  "steps": {
+    "intensiveListening": "看文字精听",
+    "listenOriginal": "听原音",
+    "scoreResult": "评分结果",
+    "speakingPrompt": "替换说",
+    "targetShadowing": "目标句跟读"
+  },
+  "unit": {
+    "reset": "再来一次"
+  }
+}

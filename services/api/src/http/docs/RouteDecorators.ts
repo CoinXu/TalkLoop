@@ -65,7 +65,7 @@ export class RouteDocs {
   }
 
   private static toJsonSchema(schema: ZodTypeAny): unknown {
-    const jsonSchema = zodToJsonSchema(schema, { target: "jsonSchema7" });
+    const jsonSchema = zodToJsonSchema(schema, { target: "jsonSchema7", $refStrategy: "none" });
     if (typeof jsonSchema === "object" && jsonSchema !== null && "$schema" in jsonSchema) {
       const { $schema: _schema, ...rest } = jsonSchema;
       return rest;

@@ -1,0 +1,18 @@
+{
+  "continueLearning": "Continue learning",
+  "emptyUnits": "No learning units available",
+  "estimatedMinutes": "{{count}} min",
+  "recentScore": "Recent score {{score}}",
+  "resumeFallback": "Last unit",
+  "resumeStep": {
+    "default": "Continue from last progress",
+    "intensive_listening": "Paused at transcript practice",
+    "listen_original": "Paused at listening",
+    "score_result": "Paused at score result",
+    "speaking_prompt": "Paused at speaking prompt",
+    "target_shadowing": "Paused at shadowing"
+  },
+  "reviewAgain": "Practice again",
+  "title": "Say one authentic expression",
+  "unitList": "Learning units"
+}

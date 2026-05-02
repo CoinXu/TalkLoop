@@ -62,6 +62,30 @@ export const importBbcResponseSchema = z.object({
   unitId: z.string().optional(),
 });
 
+export const importLearningUnitRequestSchema = z.object({
+  audioUrl: z.string().url(),
+  pdfUrl: z.string().url(),
+  dryRun: z.boolean().optional().default(false),
+  uploadedBy: z.string().min(1).optional(),
+  audioPublicUrl: z.string().url().optional(),
+});
+
+export const importLearningUnitResponseSchema = z.object({
+  unitId: z.string().optional(),
+  dryRun: z.boolean(),
+  title: z.string(),
+  expression: z.string(),
+  expressionMeaning: z.string(),
+  transcriptSegmentCount: z.number().int().nonnegative(),
+  audioDurationSeconds: z.number().int().positive(),
+  audioUrl: z.string().url(),
+  localFiles: z.object({
+    audioPath: z.string(),
+    pdfPath: z.string(),
+    manifestPath: z.string(),
+  }),
+});
+
 export const autoSyncResponseSchema = z.object({
   unitId: z.string(),
 });

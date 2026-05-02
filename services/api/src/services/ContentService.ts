@@ -4,12 +4,16 @@ import { EntityIdCodec, type EntityId } from "../domain/EntityId.js";
 import type { ContentImportProvider } from "../providers/ContentImportProvider.js";
 import type { TranscriptSyncProvider } from "../providers/TranscriptSyncProvider.js";
 import type { ContentRepository } from "../repositories/ContentRepository.js";
+import type { AssetUrlResolver } from "./AssetUrlResolver.js";
+import { importLearningUnit } from "../scripts/importLearningUnit.js";
 
 export class ContentService {
   constructor(
     private readonly contentRepository: ContentRepository,
     private readonly contentImportProvider: ContentImportProvider,
     private readonly transcriptSyncProvider: TranscriptSyncProvider,
+    private readonly assetUrlResolver?: AssetUrlResolver,
+    private readonly databaseUrl?: string,
   ) {}
 
   async createDraft(input: CreateContentUnitInput): Promise<{ unitId: string }> {
@@ -55,6 +59,50 @@ export class ContentService {
     }
   }
 
+  async importLearningUnitFromUrls(input: {
+    audioUrl: string;
+    pdfUrl: string;
+    dryRun?: boolean | undefined;
+    uploadedBy?: string | undefined;
+    audioPublicUrl?: string | undefined;
+  }): Promise<{
+    unitId?: string;
+    dryRun: boolean;
+    title: string;
+    expression: string;
+    expressionMeaning: string;
+    transcriptSegmentCount: number;
+    audioDurationSeconds: number;
+    audioUrl: string;
+    localFiles: { audioPath: string; pdfPath: string; manifestPath: string };
+  }> {
+    const dryRun = input.dryRun ?? false;
+    const importOptions = {
+      audioUrl: input.audioUrl,
+      pdfUrl: input.pdfUrl,
+      outputDir: ".data/imports",
+      dryRun,
+      uploadedBy: input.uploadedBy ?? "api-import",
+    };
+    const result = await importLearningUnit({
+      ...importOptions,
+      ...(dryRun || !this.databaseUrl ? {} : { databaseUrl: this.databaseUrl }),
+      ...(input.audioPublicUrl ? { audioPublicUrl: input.audioPublicUrl } : {}),
+    });
+
+    const response = {
+      dryRun,
+      title: result.imported.unitDraft.title,
+      expression: result.imported.unitDraft.expression,
+      expressionMeaning: result.imported.unitDraft.expressionMeaning,
+      transcriptSegmentCount: result.imported.unitDraft.transcriptSegments?.length ?? 0,
+      audioDurationSeconds: result.imported.audioInfo.durationSeconds,
+      audioUrl: result.imported.unitDraft.audioAsset?.url ?? input.audioUrl,
+      localFiles: result.imported.localFiles,
+    };
+    return result.unitId ? { ...response, unitId: result.unitId } : response;
+  }
+
   async autoSync(unitId: EntityId): Promise<void> {
     const detail = await this.contentRepository.getUnitDetail(unitId);
     if (!detail) {
@@ -76,7 +124,7 @@ export class ContentService {
         };
         return segment.chineseText === null ? transcriptSegment : { ...transcriptSegment, chineseText: segment.chineseText };
       }),
-      detail.audio.durationSeconds,
+      { url: this.assetUrlResolver?.toPublicUrl(detail.audio.url) ?? detail.audio.url, durationSeconds: detail.audio.durationSeconds },
     );
 
     await this.contentRepository.saveSyncedSegments(unitId, synced, false);

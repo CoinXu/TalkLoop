@@ -23,3 +23,28 @@
 
 ## 备注
 - `npm install` 报告 10 个依赖审计问题（8 moderate / 2 high），未执行 `npm audit fix --force`，避免破坏性升级。
+
+## 前端验证
+
+### 类型检查
+- `npm run typecheck`: 通过
+
+### Lint
+- `npm run lint`: 通过
+- 规则：Airbnb + Airbnb Hooks + Airbnb TypeScript + jsx-a11y + Prettier
+
+### 单元测试
+- `npm test`: 通过
+- 结果：3 个测试文件，6 个测试用例全部通过
+- 范围：
+  - `src/features/learning/learningFlow.test.ts`
+  - `src/features/learning/AudioTranscript.test.tsx`
+  - `src/features/home/HomePage.test.tsx`
+
+### 构建
+- `npm run build`: 通过
+- 备注：Vite 提示主 chunk 超过 500 kB，当前主要来自 Material UI 与 i18n 依赖合包；不影响构建产物。
+
+### 依赖审计
+- `npm install`: 完成，报告 4 个 moderate 级别依赖审计问题。
+- 未执行 `npm audit fix --force`，避免引入破坏性升级。

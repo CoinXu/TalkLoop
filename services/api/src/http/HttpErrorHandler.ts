@@ -24,7 +24,16 @@ export class HttpErrorHandler {
         return;
       }
 
-      request.log.error({ error }, "unhandled request error");
+      if ("validation" in error && Array.isArray(error.validation)) {
+        void reply.status(400).send({
+          error: "validation_failed",
+          message: "Invalid request payload",
+          details: error.validation,
+        });
+        return;
+      }
+
+      request.log.error({ err: error }, "unhandled request error");
       void reply.status(500).send({
         error: "internal_server_error",
         message: "Internal server error",

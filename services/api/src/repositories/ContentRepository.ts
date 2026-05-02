@@ -167,6 +167,8 @@ export class ContentRepository {
 
   async saveSyncedSegments(unitId: EntityId, segments: SyncedSegmentDraft[], manuallyReviewed: boolean): Promise<void> {
     const now = this.idGenerator.now();
+    await this.db.delete(syncedSegments).where(eq(syncedSegments.contentUnitId, unitId));
+
     if (segments.length > 0) {
       await this.db.insert(syncedSegments).values(
         segments.map((segment) => ({

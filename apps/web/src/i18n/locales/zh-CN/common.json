@@ -1,0 +1,24 @@
+{
+  "actions": {
+    "admin": "管理后台",
+    "back": "返回",
+    "cancel": "取消",
+    "continue": "继续",
+    "login": "登录",
+    "refresh": "刷新",
+    "retry": "重试",
+    "start": "开始"
+  },
+  "appName": "Echo English",
+  "status": {
+    "completed": "已完成",
+    "inProgress": "进行中",
+    "internalTester": "内部测试",
+    "loggedIn": "已登录",
+    "notStarted": "未开始"
+  },
+  "states": {
+    "empty": "暂无数据",
+    "loading": "正在加载"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "addPrompt": "Add prompt",
+  "addSegment": "Add segment",
+  "addTarget": "Add target",
+  "audio": "Audio",
+  "basic": "Basic",
+  "createDraft": "Create learning unit draft",
+  "created": "Draft created: {{unitId}}",
+  "fields": {
+    "audioPublicUrl": "Public audio URL (optional)",
+    "audioDuration": "Audio duration (seconds)",
+    "audioFormat": "Audio format",
+    "audioUrl": "Audio URL",
+    "chinesePrompt": "Chinese prompt",
+    "chineseScenario": "Chinese scenario",
+    "chineseText": "Chinese helper text",
+    "difficulty": "Difficulty",
+    "englishPromptGap": "English prompt gap",
+    "englishText": "English text",
+    "estimatedMinutes": "Estimated minutes",
+    "expectedAnswer": "Expected answer",
+    "expression": "Target expression",
+    "expressionMeaning": "Chinese meaning",
+    "includesExpression": "Includes expression",
+    "licenseStatus": "License status",
+    "pdfUrl": "PDF URL",
+    "sceneTags": "Scene tags (comma-separated)",
+    "segmentId": "Temporary segment ID",
+    "segmentOrder": "Segment order",
+    "sourceUrl": "Source URL",
+    "sourceType": "Source",
+    "speaker": "Speaker",
+    "targetExpression": "Target expression",
+    "title": "Title",
+    "unitId": "Learning unit ID"
+  },
+  "import": {
+    "bbc": "BBC URL import",
+    "bbcResult": "BBC import job: {{jobId}}, draft: {{unitId}}",
+    "createFromFiles": "Import and create draft",
+    "importBbc": "Import BBC draft",
+    "importing": "Importing",
+    "learningResult": "Import result: {{title}}, {{count}} segments, draft: {{unitId}}",
+    "learningUnit": "Audio + PDF import",
+    "preview": "Preview parse",
+    "title": "Import"
+  },
+  "item": "Item {{count}}",
+  "licenseStatus": {
+    "approved": "Approved",
+    "internal_review": "Internal review",
+    "restricted": "Restricted",
+    "rejected": "Rejected",
+    "unknown": "Unknown"
+  },
+  "loginHint": "Log in before creating a draft.",
+  "operations": {
+    "autoSync": "Auto sync",
+    "publish": "Publish",
+    "publishing": "Publishing",
+    "syncing": "Syncing",
+    "title": "Draft operations"
+  },
+  "prompts": "Speaking prompts",
+  "published": "Published unit: {{unitId}}",
+  "remove": "Remove",
+  "saving": "Creating",
+  "section": "Admin",
+  "sections": {
+    "create": "Create",
+    "import": "Import",
+    "operations": "Operations"
+  },
+  "sourceType": {
+    "bbc_url_import": "BBC URL import",
+    "manual_upload": "Manual upload",
+    "other_url_import": "Other URL import"
+  },
+  "synced": "Auto sync started: {{unitId}}",
+  "targets": "Target sentences",
+  "title": "Configure learning unit",
+  "transcript": "Transcript"
+}

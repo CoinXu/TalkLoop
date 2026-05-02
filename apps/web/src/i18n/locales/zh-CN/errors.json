@@ -1,0 +1,9 @@
+{
+  "authRequired": "请先登录后继续",
+  "audioRequired": "暂无音频，不能进入跟读和替换说",
+  "loadFailed": "加载失败",
+  "recordingBlocked": "无法使用麦克风，请开启权限后重试",
+  "recordingTooLong": "录音时长不能超过参考音频的 3 倍",
+  "recordingTooShort": "录音至少需要 1 秒",
+  "requestFailed": "请求失败"
+}

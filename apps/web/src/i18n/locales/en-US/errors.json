@@ -1,0 +1,9 @@
+{
+  "authRequired": "Please log in to continue",
+  "audioRequired": "Audio is unavailable, so shadowing and speaking cannot start",
+  "loadFailed": "Failed to load",
+  "recordingBlocked": "Microphone is unavailable. Enable permission and try again",
+  "recordingTooLong": "Recording cannot exceed 3x the reference duration",
+  "recordingTooShort": "Recording must be at least 1 second",
+  "requestFailed": "Request failed"
+}

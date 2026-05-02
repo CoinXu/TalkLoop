@@ -1,0 +1,46 @@
+{
+  "answer": {
+    "hide": "Hide reference answer",
+    "show": "Show reference answer",
+    "title": "Reference answer"
+  },
+  "audio": {
+    "currentSegment": "Current segment",
+    "nowPlaying": "Now playing",
+    "pause": "Pause",
+    "play": "Play",
+    "seek": "Seek",
+    "replaySegment": "Replay segment"
+  },
+  "entry": {
+    "difficulty": "Difficulty",
+    "meaning": "Meaning",
+    "minutes": "About {{count}} min"
+  },
+  "recorder": {
+    "mine": "My recording",
+    "recordAgain": "Record again",
+    "start": "Start recording",
+    "stop": "Stop recording",
+    "submit": "Submit score"
+  },
+  "score": {
+    "completeness": "Completeness",
+    "fluency": "Fluency",
+    "overall": "Overall",
+    "pronunciation": "Pronunciation similarity",
+    "result": "Score result",
+    "target": "Target text",
+    "tryAgain": "Practice again"
+  },
+  "steps": {
+    "intensiveListening": "Transcript practice",
+    "listenOriginal": "Listen",
+    "scoreResult": "Score result",
+    "speakingPrompt": "Speaking prompt",
+    "targetShadowing": "Shadowing"
+  },
+  "unit": {
+    "reset": "Start over"
+  }
+}

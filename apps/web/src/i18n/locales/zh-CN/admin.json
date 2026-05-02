@@ -1,0 +1,83 @@
+{
+  "addPrompt": "添加练习",
+  "addSegment": "添加段落",
+  "addTarget": "添加目标句",
+  "audio": "音频",
+  "basic": "基础信息",
+  "createDraft": "创建学习单元草稿",
+  "created": "已创建草稿：{{unitId}}",
+  "fields": {
+    "audioPublicUrl": "音频公开访问地址（可选）",
+    "audioDuration": "音频时长（秒）",
+    "audioFormat": "音频格式",
+    "audioUrl": "音频地址",
+    "chinesePrompt": "中文提示",
+    "chineseScenario": "中文场景",
+    "chineseText": "中文辅助说明",
+    "difficulty": "难度",
+    "englishPromptGap": "英文提示缺口",
+    "englishText": "英文文本",
+    "estimatedMinutes": "预计分钟",
+    "expectedAnswer": "期望答句",
+    "expression": "目标表达",
+    "expressionMeaning": "中文释义",
+    "includesExpression": "包含目标表达",
+    "licenseStatus": "授权状态",
+    "pdfUrl": "PDF 地址",
+    "sceneTags": "场景标签（逗号分隔）",
+    "segmentId": "段落临时 ID",
+    "segmentOrder": "段落顺序",
+    "sourceUrl": "来源 URL",
+    "sourceType": "来源",
+    "speaker": "角色名",
+    "targetExpression": "目标表达",
+    "title": "标题",
+    "unitId": "学习单元 ID"
+  },
+  "import": {
+    "bbc": "BBC URL 导入",
+    "bbcResult": "BBC 导入任务：{{jobId}}，草稿：{{unitId}}",
+    "createFromFiles": "导入并创建草稿",
+    "importBbc": "导入 BBC 草稿",
+    "importing": "正在导入",
+    "learningResult": "导入结果：{{title}}，段落 {{count}}，草稿：{{unitId}}",
+    "learningUnit": "音频 + PDF 导入",
+    "preview": "预览解析",
+    "title": "导入"
+  },
+  "item": "第 {{count}} 项",
+  "licenseStatus": {
+    "approved": "已批准",
+    "internal_review": "内部审核",
+    "restricted": "受限",
+    "rejected": "已拒绝",
+    "unknown": "未知"
+  },
+  "loginHint": "创建草稿需要先登录。",
+  "operations": {
+    "autoSync": "自动同步",
+    "publish": "发布",
+    "publishing": "正在发布",
+    "syncing": "正在同步",
+    "title": "草稿操作"
+  },
+  "prompts": "替换说练习",
+  "published": "已发布单元：{{unitId}}",
+  "remove": "删除",
+  "saving": "正在创建",
+  "section": "运营后台",
+  "sections": {
+    "create": "新建",
+    "import": "导入",
+    "operations": "操作"
+  },
+  "sourceType": {
+    "bbc_url_import": "BBC URL 导入",
+    "manual_upload": "手动上传",
+    "other_url_import": "其他 URL 导入"
+  },
+  "synced": "已发起自动同步：{{unitId}}",
+  "targets": "目标跟读句",
+  "title": "配置学习单元",
+  "transcript": "文字稿"
+}

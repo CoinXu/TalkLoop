@@ -35,6 +35,8 @@ export class SpeakingScoreService {
     const result = await this.speakingScoreProvider.score({
       targetText: input.targetText,
       recordingUrl,
+      recordingBuffer: input.recordingBuffer,
+      recordingMimeType: input.recordingMimeType,
     });
 
     const record = await this.scoreRepository.create({
@@ -45,7 +47,7 @@ export class SpeakingScoreService {
       targetText: input.targetText,
       recordingUrl,
       ...result,
-      providerPayload: { provider: "mock" },
+      providerPayload: { provider: this.speakingScoreProvider.providerName },
     });
 
     if (input.scoreTargetType === "speaking_prompt") {

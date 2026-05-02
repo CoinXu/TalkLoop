@@ -8,6 +8,8 @@ import {
   createContentUnitResponseSchema,
   importBbcRequestSchema,
   importBbcResponseSchema,
+  importLearningUnitRequestSchema,
+  importLearningUnitResponseSchema,
 } from "../schemas/ContentSchemas.js";
 import type { ContentService } from "../../services/ContentService.js";
 
@@ -20,6 +22,9 @@ export class ContentRoutes {
 
   @Operation("Import a BBC URL as internal review draft")
   importBbc(): void {}
+
+  @Operation("Import a learning unit from audio and PDF URLs")
+  importLearningUnit(): void {}
 
   @Operation("Publish a content unit after validation")
   publish(): void {}
@@ -70,6 +75,21 @@ export class ContentRoutes {
         const input = importBbcRequestSchema.parse(request.body);
         const result = await this.contentService.importBbcUrl(input.sourceUrl);
         return reply.status(202).send(result);
+      },
+    );
+
+    app.post(
+      "/admin/content-units/import-learning-unit",
+      {
+        schema: RouteDocs.schema(this, "importLearningUnit", {
+          body: importLearningUnitRequestSchema,
+          response: { 200: importLearningUnitResponseSchema, 201: importLearningUnitResponseSchema },
+        }),
+      },
+      async (request, reply) => {
+        const input = importLearningUnitRequestSchema.parse(request.body);
+        const result = await this.contentService.importLearningUnitFromUrls(input);
+        return reply.status(input.dryRun ? 200 : 201).send(result);
       },
     );
 

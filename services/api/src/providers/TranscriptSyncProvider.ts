@@ -10,5 +10,8 @@ export interface SyncedSegmentDraft {
 }
 
 export interface TranscriptSyncProvider {
-  autoSync(segments: Array<TranscriptSegmentInput & { segmentId: EntityId }>, audioDurationSeconds: number): Promise<SyncedSegmentDraft[]>;
+  autoSync(
+    segments: Array<TranscriptSegmentInput & { segmentId: EntityId }>,
+    audio: { url: string; durationSeconds: number },
+  ): Promise<SyncedSegmentDraft[]>;
 }
