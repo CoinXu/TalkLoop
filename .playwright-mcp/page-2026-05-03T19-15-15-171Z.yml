@@ -1,0 +1,111 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e18]:
+    - tablist [ref=e22]:
+      - tab "今日任务" [selected] [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - text: 今日任务
+      - tab "水平评估" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+        - text: 水平评估
+      - tab "我的词库" [ref=e29] [cursor=pointer]:
+        - img [ref=e30]
+        - text: 我的词库
+      - tab "课程" [ref=e32] [cursor=pointer]:
+        - img [ref=e33]
+        - text: 课程
+      - tab "听读" [ref=e36] [cursor=pointer]:
+        - img [ref=e37]
+        - text: 听读
+      - tab "报告" [ref=e39] [cursor=pointer]:
+        - img [ref=e40]
+        - text: 报告
+      - tab "个人" [ref=e42] [cursor=pointer]:
+        - img [ref=e43]
+        - text: 个人
+    - generic [ref=e143]:
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - heading "今日激活计划" [level=5] [ref=e148]
+            - paragraph [ref=e149]: 基于激活词状态生成听辨、复习和跟读任务。
+          - generic [ref=e150]:
+            - paragraph [ref=e151]: 激活词状态
+            - generic [ref=e153]: 待激活 1
+            - generic [ref=e155]: 巩固中 0
+            - generic [ref=e157]: 已掌握 0
+        - generic [ref=e158]:
+          - generic [ref=e159]:
+            - paragraph [ref=e160]: 任务数
+            - heading "2" [level=6] [ref=e161]
+          - generic [ref=e162]:
+            - paragraph [ref=e163]: 预计分钟
+            - heading "15" [level=6] [ref=e164]
+          - generic [ref=e165]:
+            - paragraph [ref=e166]: 完成进度
+            - heading "1/2" [level=6] [ref=e167]
+          - generic [ref=e168]:
+            - paragraph [ref=e169]: 策略
+            - heading "default-v1.0" [level=6] [ref=e170]
+        - progressbar [ref=e171]
+        - generic [ref=e173]:
+          - paragraph [ref=e174]: 当前身份：ui-task-complete-2
+          - button "刷新今日计划" [ref=e175] [cursor=pointer]:
+            - img [ref=e177]
+            - text: 刷新今日计划
+          - button "重置今日计划" [ref=e179] [cursor=pointer]
+      - generic [ref=e180]:
+        - generic [ref=e182]:
+          - generic [ref=e183]:
+            - heading "听音辨义" [level=6] [ref=e184]
+            - generic [ref=e186]: 1 项
+          - separator [ref=e187]
+          - generic [ref=e189]:
+            - generic [ref=e190]:
+              - generic [ref=e191]:
+                - img [ref=e192]
+                - generic [ref=e194]:
+                  - heading "听音辨义" [level=6] [ref=e195]
+                  - paragraph [ref=e196]: to
+              - generic [ref=e198]: 已完成
+            - generic [ref=e199]:
+              - generic [ref=e200]: 优先级 100
+              - button "已完成" [disabled]:
+                - generic:
+                  - img
+                - text: 已完成
+        - generic [ref=e202]:
+          - generic [ref=e203]:
+            - heading "词汇复习" [level=6] [ref=e204]
+            - generic [ref=e206]: 1 项
+          - separator [ref=e207]
+          - generic [ref=e209]:
+            - generic [ref=e210]:
+              - generic [ref=e211]:
+                - img [ref=e212]
+                - generic [ref=e214]:
+                  - heading "词汇复习" [level=6] [ref=e215]
+                  - paragraph [ref=e216]: to
+              - generic [ref=e218]: pending
+            - generic [ref=e219]:
+              - generic [ref=e220]: 优先级 99
+              - button "练习" [ref=e221] [cursor=pointer]:
+                - img [ref=e223]
+                - text: 练习
+        - generic [ref=e226]:
+          - generic [ref=e227]:
+            - heading "句子跟读" [level=6] [ref=e228]
+            - generic [ref=e230]: 0 项
+          - separator [ref=e231]
+          - paragraph [ref=e233]: 暂无该类型任务。

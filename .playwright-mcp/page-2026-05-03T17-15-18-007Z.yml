@@ -1,0 +1,192 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - text: 管理后台
+      - generic [ref=e20]:
+        - button "总览" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+          - text: 总览
+        - button "M1 管理员" [ref=e25] [cursor=pointer]:
+          - img [ref=e27]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e29] [cursor=pointer]:
+          - img [ref=e31]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e33] [cursor=pointer]:
+          - img [ref=e35]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e38] [cursor=pointer]:
+          - img [ref=e40]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e43] [cursor=pointer]:
+          - img [ref=e45]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e47] [cursor=pointer]:
+          - img [ref=e49]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e51] [cursor=pointer]:
+          - img [ref=e53]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e55] [cursor=pointer]:
+          - img [ref=e57]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e59] [cursor=pointer]:
+          - img [ref=e61]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e63] [cursor=pointer]:
+          - img [ref=e65]
+          - text: M10 课程报告
+    - generic [ref=e1027]:
+      - generic [ref=e1030]:
+        - generic [ref=e1031]:
+          - heading "M2 词库" [level=5] [ref=e1032]
+          - paragraph [ref=e1033]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e1034]:
+          - generic [ref=e1036]: admin
+          - button "退出" [ref=e1037] [cursor=pointer]:
+            - img [ref=e1039]
+            - text: 退出
+      - generic [ref=e1316]:
+        - tablist [ref=e1322]:
+          - tab "SUBTLEXus 导入" [selected] [ref=e1323] [cursor=pointer]
+          - tab "学习词条" [ref=e1324] [cursor=pointer]
+        - generic [ref=e1327]:
+          - heading "SUBTLEXus 词频表导入" [level=6] [ref=e1328]
+          - paragraph [ref=e1329]: 先把 Excel 导入来源词表；导入结果里的批次 ID 会自动用于筛选来源词。
+          - generic [ref=e1330]:
+            - button "选择文件" [ref=e1331] [cursor=pointer]:
+              - img [ref=e1333]
+              - text: 选择文件
+            - generic [ref=e1335]:
+              - generic: 文件
+              - generic [ref=e1336]:
+                - textbox "文件" [disabled] [ref=e1337]
+                - group:
+                  - generic: 文件
+            - generic [ref=e1338]:
+              - generic: 限制行数
+              - generic [ref=e1339]:
+                - spinbutton "限制行数" [ref=e1340]
+                - group:
+                  - generic: 限制行数
+            - generic [ref=e1341]:
+              - generic [ref=e1342]: 原因
+              - generic [ref=e1343]:
+                - textbox "原因" [ref=e1344]: import SUBTLEXus frequency workbook
+                - group:
+                  - generic: 原因
+            - generic [ref=e1345] [cursor=pointer]:
+              - generic [ref=e1346]:
+                - checkbox "只预检" [checked] [ref=e1347]
+                - img [ref=e1348]
+              - generic [ref=e1350]: 只预检
+            - button "导入" [ref=e1351] [cursor=pointer]:
+              - img [ref=e1353]
+              - text: 导入
+        - generic [ref=e1356]:
+          - generic [ref=e1357]:
+            - generic [ref=e1358]:
+              - heading "SUBTLEXus 来源词" [level=6] [ref=e1359]
+              - paragraph [ref=e1360]: 对应 GET /admin/word-library/subtlexus-words，确认导入批次和频率字段后再生成学习词条。
+            - button "刷新来源词" [ref=e1361] [cursor=pointer]
+          - generic [ref=e1362]:
+            - generic [ref=e1363]:
+              - generic: importBatchId
+              - generic [ref=e1364]:
+                - textbox "importBatchId" [ref=e1365]
+                - group:
+                  - generic: importBatchId
+            - generic [ref=e1366]:
+              - generic: keyword
+              - generic [ref=e1367]:
+                - textbox "keyword" [ref=e1368]
+                - group:
+                  - generic: keyword
+            - generic [ref=e1369]:
+              - generic: minLg10Wf
+              - generic [ref=e1370]:
+                - spinbutton "minLg10Wf" [ref=e1371]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e1372]:
+              - generic [ref=e1373]: limit
+              - generic [ref=e1374]:
+                - spinbutton "limit" [ref=e1375]: "50"
+                - group:
+                  - generic: limit
+            - generic [ref=e1376]:
+              - generic [ref=e1377]: sortBy
+              - generic [ref=e1378]:
+                - combobox "sortBy createdAt" [ref=e1379] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e1380]:
+              - generic [ref=e1381]: sortOrder
+              - generic [ref=e1382]:
+                - combobox "sortOrder desc" [ref=e1383] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+          - table [ref=e1385]:
+            - rowgroup [ref=e1386]:
+              - row "word normalized freq/cd SUBTL wf/cd lg10 wf/cd batch" [ref=e1387]:
+                - columnheader "word" [ref=e1388]
+                - columnheader "normalized" [ref=e1389]
+                - columnheader "freq/cd" [ref=e1390]
+                - columnheader "SUBTL wf/cd" [ref=e1391]
+                - columnheader "lg10 wf/cd" [ref=e1392]
+                - columnheader "batch" [ref=e1393]
+            - rowgroup [ref=e1394]:
+              - row "暂无来源词。" [ref=e1395]:
+                - cell "暂无来源词。" [ref=e1396]
+        - generic [ref=e1398]:
+          - heading "从 SUBTLEXus 生成学习词条" [level=6] [ref=e1399]
+          - paragraph [ref=e1400]: 对应 POST /admin/word-library/words/from-subtlexus，可按最低 lg10Wf 批量生成，也可指定词表。
+          - generic [ref=e1401]:
+            - generic [ref=e1402]:
+              - generic: minLg10Wf
+              - generic [ref=e1403]:
+                - spinbutton "minLg10Wf" [ref=e1404]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e1405]:
+              - generic [ref=e1406]: maxRows
+              - generic [ref=e1407]:
+                - spinbutton "maxRows" [ref=e1408]: "500"
+                - group:
+                  - generic: maxRows
+            - generic [ref=e1409]:
+              - generic [ref=e1410]: reason
+              - generic [ref=e1411]:
+                - textbox "reason" [ref=e1412]: create learning words from SUBTLEXus source
+                - group:
+                  - generic: reason
+            - generic [ref=e1413] [cursor=pointer]:
+              - generic [ref=e1414]:
+                - checkbox "排除已存在词条" [checked] [ref=e1415]
+                - img [ref=e1416]
+              - generic [ref=e1418]: 排除已存在词条
+            - generic [ref=e1419]:
+              - generic: 指定 words，可换行或逗号分隔
+              - generic [ref=e1420]:
+                - textbox "指定 words，可换行或逗号分隔" [ref=e1421]
+                - group:
+                  - generic: 指定 words，可换行或逗号分隔
+            - button "生成学习词条" [ref=e1422] [cursor=pointer]:
+              - img [ref=e1424]
+              - text: 生成学习词条

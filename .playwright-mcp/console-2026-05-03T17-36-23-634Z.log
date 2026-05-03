@@ -1,0 +1,18 @@
+[   20530ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:20102
+[   20562ms] [INFO] 🌐 i18next is made possible by our own product, Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙 @ http://127.0.0.1:5173/node_modules/.vite/deps/i18next.js?v=16dd35bb:1804
+[  203366ms] ReferenceError: shortId is not defined
+    at http://127.0.0.1:5173/src/App.tsx?t=1777829986767:1823:206
+    at Array.map (<anonymous>)
+    at WordLibraryAdminPanel (http://127.0.0.1:5173/src/App.tsx?t=1777829986767:1776:25)
+    at Object.react_stack_bottom_frame (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:18509:20)
+    at renderWithHooks (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:5654:24)
+    at updateFunctionComponent (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:7475:21)
+    at beginWork (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:8525:20)
+    at runWithFiberInDEV (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:997:72)
+    at performUnitOfWork (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:12561:98)
+    at workLoopSync (http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:12424:43)
+[  203366ms] [WARNING] %s
+
+%s
+ An error occurred in the <WordLibraryAdminPanel> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=16dd35bb:6965

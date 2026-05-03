@@ -1,0 +1,16 @@
+[  220361ms] TypeError: Cannot read properties of undefined (reading 'map')
+    at http://localhost:5173/src/features/learning/components/TodayPanel.tsx?t=1777834290882:56:47
+    at mountMemo (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:6527:25)
+    at Object.useMemo (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:18709:20)
+    at exports.useMemo (http://localhost:5173/node_modules/.vite/deps/chunk-YI4H6FPL.js?v=bad421ed:947:36)
+    at TodayPanel (http://localhost:5173/src/features/learning/components/TodayPanel.tsx?t=1777834290882:56:19)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:18509:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:5654:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:7475:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:8525:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:997:72)
+[  220360ms] [WARNING] %s
+
+%s
+ An error occurred in the <TodayPanel> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=bad421ed:6965

@@ -1,0 +1,482 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - text: 管理后台
+      - generic [ref=e20]:
+        - button "总览" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+          - text: 总览
+        - button "M1 管理员" [ref=e25] [cursor=pointer]:
+          - img [ref=e27]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e29] [cursor=pointer]:
+          - img [ref=e31]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e33] [cursor=pointer]:
+          - img [ref=e35]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e38] [cursor=pointer]:
+          - img [ref=e40]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e43] [cursor=pointer]:
+          - img [ref=e45]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e47] [cursor=pointer]:
+          - img [ref=e49]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e51] [cursor=pointer]:
+          - img [ref=e53]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e55] [cursor=pointer]:
+          - img [ref=e57]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e59] [cursor=pointer]:
+          - img [ref=e61]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e63] [cursor=pointer]:
+          - img [ref=e65]
+          - text: M10 课程报告
+    - generic [ref=e1027]:
+      - generic [ref=e1030]:
+        - generic [ref=e1031]:
+          - heading "M2 词库" [level=5] [ref=e1032]
+          - paragraph [ref=e1033]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e1034]:
+          - generic [ref=e1036]: admin
+          - button "退出" [ref=e1037] [cursor=pointer]:
+            - img [ref=e1039]
+            - text: 退出
+      - generic [ref=e1041]:
+        - generic [ref=e1043]:
+          - heading "SUBTLEXus 词频表导入" [level=6] [ref=e1044]
+          - paragraph [ref=e1045]: 先把 Excel 导入来源词表；导入结果里的批次 ID 会自动用于筛选来源词。
+          - generic [ref=e1046]:
+            - button "选择文件" [ref=e1047] [cursor=pointer]:
+              - img [ref=e1049]
+              - text: 选择文件
+            - generic [ref=e1051]:
+              - generic: 文件
+              - generic [ref=e1052]:
+                - textbox "文件" [disabled] [ref=e1053]
+                - group:
+                  - generic: 文件
+            - generic [ref=e1054]:
+              - generic: 限制行数
+              - generic [ref=e1055]:
+                - spinbutton "限制行数" [ref=e1056]
+                - group:
+                  - generic: 限制行数
+            - generic [ref=e1057]:
+              - generic [ref=e1058]: 原因
+              - generic [ref=e1059]:
+                - textbox "原因" [ref=e1060]: import SUBTLEXus frequency workbook
+                - group:
+                  - generic: 原因
+            - generic [ref=e1061] [cursor=pointer]:
+              - generic [ref=e1062]:
+                - checkbox "只预检" [checked] [ref=e1063]
+                - img [ref=e1064]
+              - generic [ref=e1066]: 只预检
+            - button "导入" [ref=e1067] [cursor=pointer]:
+              - img [ref=e1069]
+              - text: 导入
+        - generic [ref=e1072]:
+          - generic [ref=e1073]:
+            - generic [ref=e1074]:
+              - heading "SUBTLEXus 来源词" [level=6] [ref=e1075]
+              - paragraph [ref=e1076]: 对应 GET /admin/word-library/subtlexus-words，确认导入批次和频率字段后再生成学习词条。
+            - button "刷新来源词" [ref=e1077] [cursor=pointer]
+          - generic [ref=e1078]:
+            - generic [ref=e1079]:
+              - generic: importBatchId
+              - generic [ref=e1080]:
+                - textbox "importBatchId" [ref=e1081]
+                - group:
+                  - generic: importBatchId
+            - generic [ref=e1082]:
+              - generic: keyword
+              - generic [ref=e1083]:
+                - textbox "keyword" [ref=e1084]
+                - group:
+                  - generic: keyword
+            - generic [ref=e1085]:
+              - generic: minLg10Wf
+              - generic [ref=e1086]:
+                - spinbutton "minLg10Wf" [ref=e1087]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e1088]:
+              - generic [ref=e1089]: limit
+              - generic [ref=e1090]:
+                - spinbutton "limit" [ref=e1091]: "50"
+                - group:
+                  - generic: limit
+            - generic [ref=e1092]:
+              - generic [ref=e1093]: sortBy
+              - generic [ref=e1094]:
+                - combobox "sortBy createdAt" [ref=e1095] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e1096]:
+              - generic [ref=e1097]: sortOrder
+              - generic [ref=e1098]:
+                - combobox "sortOrder desc" [ref=e1099] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+          - table [ref=e1101]:
+            - rowgroup [ref=e1102]:
+              - row "word normalized freq/cd SUBTL wf/cd lg10 wf/cd batch" [ref=e1103]:
+                - columnheader "word" [ref=e1104]
+                - columnheader "normalized" [ref=e1105]
+                - columnheader "freq/cd" [ref=e1106]
+                - columnheader "SUBTL wf/cd" [ref=e1107]
+                - columnheader "lg10 wf/cd" [ref=e1108]
+                - columnheader "batch" [ref=e1109]
+            - rowgroup [ref=e1110]:
+              - row "暂无来源词。" [ref=e1111]:
+                - cell "暂无来源词。" [ref=e1112]
+        - generic [ref=e1114]:
+          - heading "从 SUBTLEXus 生成学习词条" [level=6] [ref=e1115]
+          - paragraph [ref=e1116]: 对应 POST /admin/word-library/words/from-subtlexus，可按最低 lg10Wf 批量生成，也可指定词表。
+          - generic [ref=e1117]:
+            - generic [ref=e1118]:
+              - generic: minLg10Wf
+              - generic [ref=e1119]:
+                - spinbutton "minLg10Wf" [ref=e1120]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e1121]:
+              - generic [ref=e1122]: maxRows
+              - generic [ref=e1123]:
+                - spinbutton "maxRows" [ref=e1124]: "500"
+                - group:
+                  - generic: maxRows
+            - generic [ref=e1125]:
+              - generic [ref=e1126]: reason
+              - generic [ref=e1127]:
+                - textbox "reason" [ref=e1128]: create learning words from SUBTLEXus source
+                - group:
+                  - generic: reason
+            - generic [ref=e1129] [cursor=pointer]:
+              - generic [ref=e1130]:
+                - checkbox "排除已存在词条" [checked] [ref=e1131]
+                - img [ref=e1132]
+              - generic [ref=e1134]: 排除已存在词条
+            - generic [ref=e1135]:
+              - generic: 指定 words，可换行或逗号分隔
+              - generic [ref=e1136]:
+                - textbox "指定 words，可换行或逗号分隔" [ref=e1137]
+                - group:
+                  - generic: 指定 words，可换行或逗号分隔
+            - button "生成学习词条" [ref=e1138] [cursor=pointer]:
+              - img [ref=e1140]
+              - text: 生成学习词条
+        - generic [ref=e1143]:
+          - generic [ref=e1144]:
+            - generic [ref=e1145]:
+              - heading "创建词条" [level=6] [ref=e1146]
+              - paragraph [ref=e1147]: 覆盖 /admin/word-library/words 的主要字段，发布前需补齐释义、音频、频率、语境多样性和难度。
+            - generic [ref=e1148]:
+              - button "清空" [ref=e1149] [cursor=pointer]
+              - button "创建词条" [disabled]:
+                - generic:
+                  - img
+                - text: 创建词条
+          - generic [ref=e1150]:
+            - generic [ref=e1151]:
+              - generic:
+                - text: word
+                - generic: "*"
+              - generic [ref=e1152]:
+                - textbox "word" [ref=e1153]
+                - group:
+                  - generic: word *
+            - generic [ref=e1154]:
+              - generic: lemma
+              - generic [ref=e1155]:
+                - textbox "lemma" [ref=e1156]
+                - group:
+                  - generic: lemma
+            - generic [ref=e1157]:
+              - generic: phonetic
+              - generic [ref=e1158]:
+                - textbox "phonetic" [ref=e1159]
+                - group:
+                  - generic: phonetic
+            - generic [ref=e1160]:
+              - generic: partOfSpeech
+              - generic [ref=e1161]:
+                - textbox "partOfSpeech" [ref=e1162]
+                - group:
+                  - generic: partOfSpeech
+            - generic [ref=e1163]:
+              - generic: meaningCn
+              - generic [ref=e1164]:
+                - textbox "meaningCn" [ref=e1165]
+                - group:
+                  - generic: meaningCn
+            - generic [ref=e1166]:
+              - generic: meaningEn
+              - generic [ref=e1167]:
+                - textbox "meaningEn" [ref=e1168]
+                - group:
+                  - generic: meaningEn
+            - generic [ref=e1169]:
+              - generic: audioUrl
+              - generic [ref=e1170]:
+                - textbox "audioUrl" [ref=e1171]
+                - group:
+                  - generic: audioUrl
+            - generic [ref=e1172]:
+              - generic [ref=e1173]: audioStatus
+              - generic [ref=e1174]:
+                - combobox "audioStatus missing" [ref=e1175] [cursor=pointer]: missing
+                - textbox: missing
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e1176]:
+              - generic [ref=e1177]: publishStatus
+              - generic [ref=e1178]:
+                - combobox "publishStatus draft" [ref=e1179] [cursor=pointer]: draft
+                - textbox: draft
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e1180]:
+              - generic [ref=e1181]: reviewStatus
+              - generic [ref=e1182]:
+                - combobox "reviewStatus pending_review" [ref=e1183] [cursor=pointer]: pending_review
+                - textbox: pending_review
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e1184]:
+              - generic: difficultyLevel
+              - generic [ref=e1185]:
+                - spinbutton "difficultyLevel" [ref=e1186]
+                - group:
+                  - generic: difficultyLevel
+            - generic [ref=e1187]:
+              - generic: frequencyCount
+              - generic [ref=e1188]:
+                - spinbutton "frequencyCount" [ref=e1189]
+                - group:
+                  - generic: frequencyCount
+            - generic [ref=e1190]:
+              - generic: cdCount
+              - generic [ref=e1191]:
+                - spinbutton "cdCount" [ref=e1192]
+                - group:
+                  - generic: cdCount
+            - generic [ref=e1193]:
+              - generic: frequencyLow
+              - generic [ref=e1194]:
+                - spinbutton "frequencyLow" [ref=e1195]
+                - group:
+                  - generic: frequencyLow
+            - generic [ref=e1196]:
+              - generic: cdLow
+              - generic [ref=e1197]:
+                - spinbutton "cdLow" [ref=e1198]
+                - group:
+                  - generic: cdLow
+            - generic [ref=e1199]:
+              - generic: subtlwf
+              - generic [ref=e1200]:
+                - textbox "subtlwf" [ref=e1201]
+                - group:
+                  - generic: subtlwf
+            - generic [ref=e1202]:
+              - generic: lg10wf
+              - generic [ref=e1203]:
+                - textbox "lg10wf" [ref=e1204]
+                - group:
+                  - generic: lg10wf
+            - generic [ref=e1205]:
+              - generic: subtlcd
+              - generic [ref=e1206]:
+                - textbox "subtlcd" [ref=e1207]
+                - group:
+                  - generic: subtlcd
+            - generic [ref=e1208]:
+              - generic: lg10cd
+              - generic [ref=e1209]:
+                - textbox "lg10cd" [ref=e1210]
+                - group:
+                  - generic: lg10cd
+            - generic [ref=e1211]:
+              - generic: levelTags，逗号分隔
+              - generic [ref=e1212]:
+                - textbox "levelTags，逗号分隔" [ref=e1213]
+                - group:
+                  - generic: levelTags，逗号分隔
+            - generic [ref=e1214]:
+              - generic: sceneTags，逗号分隔
+              - generic [ref=e1215]:
+                - textbox "sceneTags，逗号分隔" [ref=e1216]
+                - group:
+                  - generic: sceneTags，逗号分隔
+            - generic [ref=e1217]:
+              - generic: commonCollocations，逗号分隔
+              - generic [ref=e1218]:
+                - textbox "commonCollocations，逗号分隔" [ref=e1219]
+                - group:
+                  - generic: commonCollocations，逗号分隔
+            - generic [ref=e1220]:
+              - generic: hearingTrap
+              - generic [ref=e1221]:
+                - textbox "hearingTrap" [ref=e1222]
+                - group:
+                  - generic: hearingTrap
+            - generic [ref=e1223]:
+              - generic: distractors.pronunciation
+              - generic [ref=e1224]:
+                - textbox "distractors.pronunciation" [ref=e1225]
+                - group:
+                  - generic: distractors.pronunciation
+            - generic [ref=e1226]:
+              - generic: distractors.meaning
+              - generic [ref=e1227]:
+                - textbox "distractors.meaning" [ref=e1228]
+                - group:
+                  - generic: distractors.meaning
+            - generic [ref=e1229]:
+              - generic: distractors.difficulty
+              - generic [ref=e1230]:
+                - textbox "distractors.difficulty" [ref=e1231]
+                - group:
+                  - generic: distractors.difficulty
+            - generic [ref=e1232]:
+              - generic: exclusionReason
+              - generic [ref=e1233]:
+                - textbox "exclusionReason" [ref=e1234]
+                - group:
+                  - generic: exclusionReason
+            - generic [ref=e1235]:
+              - generic [ref=e1236]: reason
+              - generic [ref=e1237]:
+                - textbox "reason" [ref=e1238]: word library admin update
+                - group:
+                  - generic: reason
+            - generic [ref=e1239] [cursor=pointer]:
+              - generic [ref=e1240]:
+                - checkbox "isExcluded" [ref=e1241]
+                - img [ref=e1242]
+              - generic [ref=e1244]: isExcluded
+        - generic [ref=e1246]:
+          - generic [ref=e1247]:
+            - generic [ref=e1248]:
+              - heading "学习词条列表" [level=6] [ref=e1249]
+              - paragraph [ref=e1250]: 对应 GET /admin/word-library/words，覆盖状态、音频、释义、频率、标签和排除字段。
+            - button "刷新词条" [ref=e1251] [cursor=pointer]
+          - generic [ref=e1252]:
+            - generic [ref=e1253]:
+              - generic: keyword
+              - generic [ref=e1254]:
+                - textbox "keyword" [ref=e1255]
+                - group:
+                  - generic: keyword
+            - generic [ref=e1256]:
+              - generic: publishStatus
+              - generic [ref=e1257]:
+                - combobox "publishStatus" [ref=e1258] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e1259]:
+              - generic: reviewStatus
+              - generic [ref=e1260]:
+                - combobox "reviewStatus" [ref=e1261] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e1262]:
+              - generic: audioStatus
+              - generic [ref=e1263]:
+                - combobox "audioStatus" [ref=e1264] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e1265]:
+              - generic: minFrequencyCount
+              - generic [ref=e1266]:
+                - spinbutton "minFrequencyCount" [ref=e1267]
+                - group:
+                  - generic: minFrequencyCount
+            - generic [ref=e1268]:
+              - generic: minLg10wf
+              - generic [ref=e1269]:
+                - spinbutton "minLg10wf" [ref=e1270]
+                - group:
+                  - generic: minLg10wf
+            - generic [ref=e1271]:
+              - generic [ref=e1272]: limit
+              - generic [ref=e1273]:
+                - spinbutton "limit" [ref=e1274]: "50"
+                - group:
+                  - generic: limit
+            - generic [ref=e1275]:
+              - generic [ref=e1276]: sortBy
+              - generic [ref=e1277]:
+                - combobox "sortBy createdAt" [ref=e1278] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e1279]:
+              - generic [ref=e1280]: sortOrder
+              - generic [ref=e1281]:
+                - combobox "sortOrder desc" [ref=e1282] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+            - generic [ref=e1283] [cursor=pointer]:
+              - generic [ref=e1284]:
+                - checkbox "有释义" [ref=e1285]
+                - img [ref=e1286]
+              - generic [ref=e1288]: 有释义
+            - generic [ref=e1289] [cursor=pointer]:
+              - generic [ref=e1290]:
+                - checkbox "有音频" [ref=e1291]
+                - img [ref=e1292]
+              - generic [ref=e1294]: 有音频
+            - generic [ref=e1295] [cursor=pointer]:
+              - generic [ref=e1296]:
+                - checkbox "仅排除词" [ref=e1297]
+                - img [ref=e1298]
+              - generic [ref=e1300]: 仅排除词
+          - table [ref=e1302]:
+            - rowgroup [ref=e1303]:
+              - row "操作 word lemma 释义 频率 SUBTLEX 状态 标签/排除" [ref=e1304]:
+                - columnheader "操作" [ref=e1305]
+                - columnheader "word" [ref=e1306]
+                - columnheader "lemma" [ref=e1307]
+                - columnheader "释义" [ref=e1308]
+                - columnheader "频率" [ref=e1309]
+                - columnheader "SUBTLEX" [ref=e1310]
+                - columnheader "状态" [ref=e1311]
+                - columnheader "标签/排除" [ref=e1312]
+            - rowgroup [ref=e1313]:
+              - row "暂无词条。" [ref=e1314]:
+                - cell "暂无词条。" [ref=e1315]

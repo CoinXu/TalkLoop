@@ -1,5 +1,5 @@
 html {
-  background: #f7f8fb;
+  background: #f6f7f9;
 }
 
 body {
@@ -8,4 +8,240 @@ body {
 
 audio {
   width: 100%;
+}
+
+.appShell {
+  min-height: 100vh;
+  background: #f6f7f9;
+}
+
+.topBar {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 72px;
+}
+
+.workspace {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 18px;
+}
+
+.contentGrid {
+  margin-top: 18px;
+}
+
+.primaryPanel {
+  border: 1px solid #e1e5ec;
+  box-shadow: none;
+  flex: 1;
+}
+
+.friendlyOptions {
+  margin: 18px 0;
+}
+
+.metricBox {
+  background: #eef2f7;
+  border-radius: 8px;
+  flex: 1;
+  padding: 16px;
+}
+
+.adminLayout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 18px;
+}
+
+.adminNav,
+.adminContent {
+  min-width: 0;
+}
+
+.adminContent .MuiTextField-root {
+  min-width: 0;
+}
+
+.adminContent .MuiInputBase-root {
+  font-size: 0.8125rem;
+}
+
+.adminContent .MuiOutlinedInput-root {
+  min-height: 36px;
+}
+
+.adminContent .MuiOutlinedInput-input {
+  padding: 8px 10px;
+}
+
+.adminContent textarea.MuiOutlinedInput-input {
+  padding: 0;
+}
+
+.adminContent .MuiInputLabel-root {
+  font-size: 0.8125rem;
+  transform: translate(10px, 8px) scale(1);
+}
+
+.adminContent .MuiInputLabel-shrink {
+  transform: translate(10px, -7px) scale(0.75);
+}
+
+.adminContent .MuiSelect-select {
+  min-height: 20px;
+}
+
+.adminContent .MuiFormControlLabel-label {
+  font-size: 0.8125rem;
+}
+
+.adminContent .MuiCheckbox-root {
+  padding: 5px;
+}
+
+.adminNav {
+  align-self: start;
+  position: sticky;
+  top: 90px;
+}
+
+.loginPanel {
+  margin: 36px auto;
+  max-width: 460px;
+}
+
+.wordFormGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  margin-top: 14px;
+}
+
+.wordFormGrid .MuiFormControl-root,
+.importControlGrid .MuiFormControl-root {
+  min-width: 0;
+}
+
+.importControlGrid {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(112px, max-content) minmax(180px, 1fr) minmax(120px, 0.7fr) minmax(200px, 1fr);
+  margin-top: 14px;
+}
+
+.filterGrid,
+.createFromSourceGrid {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  margin-top: 14px;
+}
+
+.importControlGrid .MuiButton-root {
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.noWrapControl {
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.tableScroller {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.tableHeaderTip {
+  border-bottom: 1px dotted #64748b;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.paginationControls {
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.jumpPageField {
+  width: 76px;
+}
+
+.jsonResult {
+  background: #f1f5f9;
+  border-radius: 8px;
+  margin-top: 16px;
+  padding: 12px;
+}
+
+.resultBlock {
+  margin-top: 16px;
+}
+
+.resultMetricGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.resultMetricGrid .metricBox {
+  min-width: 0;
+}
+
+.resultMetricGrid .metricBox .MuiTypography-h4 {
+  font-size: clamp(1rem, 1.2vw, 1.4rem);
+  overflow-wrap: anywhere;
+}
+
+.jsonResult pre {
+  margin: 8px 0 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 840px) {
+  .topBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .adminLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .adminNav {
+    position: static;
+  }
+
+  .wordFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .importControlGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filterGrid,
+  .createFromSourceGrid,
+  .resultMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .paginationControls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

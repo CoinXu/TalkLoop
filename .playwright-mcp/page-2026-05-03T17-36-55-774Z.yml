@@ -1,0 +1,323 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - text: 管理后台
+      - generic [ref=e20]:
+        - button "总览" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+          - text: 总览
+        - button "M1 管理员" [ref=e25] [cursor=pointer]:
+          - img [ref=e27]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e29] [cursor=pointer]:
+          - img [ref=e31]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e33] [cursor=pointer]:
+          - img [ref=e35]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e38] [cursor=pointer]:
+          - img [ref=e40]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e43] [cursor=pointer]:
+          - img [ref=e45]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e47] [cursor=pointer]:
+          - img [ref=e49]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e51] [cursor=pointer]:
+          - img [ref=e53]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e55] [cursor=pointer]:
+          - img [ref=e57]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e59] [cursor=pointer]:
+          - img [ref=e61]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e63] [cursor=pointer]:
+          - img [ref=e65]
+          - text: M10 课程报告
+    - generic [ref=e68]:
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - heading "M2 词库" [level=5] [ref=e73]
+          - paragraph [ref=e74]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e75]:
+          - generic [ref=e77]: admin
+          - button "退出" [ref=e78] [cursor=pointer]:
+            - img [ref=e80]
+            - text: 退出
+      - generic [ref=e82]:
+        - tablist [ref=e88]:
+          - tab "SUBTLEXus 导入" [selected] [ref=e89] [cursor=pointer]
+          - tab "学习词条" [ref=e90] [cursor=pointer]
+        - generic [ref=e93]:
+          - heading "SUBTLEXus 词频表导入" [level=6] [ref=e94]
+          - paragraph [ref=e95]: 先把 Excel 导入来源词表；导入结果里的批次 ID 会自动用于筛选来源词。
+          - generic [ref=e96]:
+            - button "选择文件" [ref=e97] [cursor=pointer]:
+              - img [ref=e99]
+              - text: 选择文件
+            - generic [ref=e101]:
+              - generic: 文件
+              - generic [ref=e102]:
+                - textbox "文件" [disabled] [ref=e103]
+                - group:
+                  - generic: 文件
+            - generic [ref=e104]:
+              - generic: 限制行数
+              - generic [ref=e105]:
+                - spinbutton "限制行数" [ref=e106]
+                - group:
+                  - generic: 限制行数
+            - generic [ref=e107]:
+              - generic [ref=e108]: 原因
+              - generic [ref=e109]:
+                - textbox "原因" [ref=e110]: import SUBTLEXus frequency workbook
+                - group:
+                  - generic: 原因
+            - generic [ref=e111] [cursor=pointer]:
+              - generic [ref=e112]:
+                - checkbox "只预检" [checked] [ref=e113]
+                - img [ref=e114]
+              - generic [ref=e116]: 只预检
+            - button "导入" [ref=e117] [cursor=pointer]:
+              - img [ref=e119]
+              - text: 导入
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - heading "SUBTLEXus 来源词" [level=6] [ref=e125]
+              - paragraph [ref=e126]: 对应 GET /admin/word-library/subtlexus-words，确认导入批次和频率字段后再生成学习词条。
+            - button "刷新来源词" [ref=e127] [cursor=pointer]
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - generic: importBatchId
+              - generic [ref=e130]:
+                - textbox "importBatchId" [ref=e131]
+                - group:
+                  - generic: importBatchId
+            - generic [ref=e132]:
+              - generic: keyword
+              - generic [ref=e133]:
+                - textbox "keyword" [ref=e134]
+                - group:
+                  - generic: keyword
+            - generic [ref=e135]:
+              - generic: minLg10Wf
+              - generic [ref=e136]:
+                - spinbutton "minLg10Wf" [ref=e137]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e138]:
+              - generic [ref=e139]: limit
+              - generic [ref=e140]:
+                - spinbutton "limit" [ref=e141]: "10"
+                - group:
+                  - generic: limit
+            - generic [ref=e142]:
+              - generic [ref=e143]: offset
+              - generic [ref=e144]:
+                - spinbutton "offset" [ref=e145]: "0"
+                - group:
+                  - generic: offset
+            - generic [ref=e146]:
+              - generic [ref=e147]: sortBy
+              - generic [ref=e148]:
+                - combobox "sortBy createdAt" [ref=e149] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e150]:
+              - generic [ref=e151]: sortOrder
+              - generic [ref=e152]:
+                - combobox "sortOrder desc" [ref=e153] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+            - button "查询" [ref=e154] [cursor=pointer]
+          - table [ref=e156]:
+            - rowgroup [ref=e157]:
+              - row "词形；若大写开头更常见，原表会以大写开头。 在 5100 万词语料中出现的总次数。 出现过该词的影片数，最大 8,388。 以小写开头出现的总次数，用于区分大小写刺激材料。 以小写开头出现过该词的影片数。 每百万词频率，跨语料规模可比，论文中优先使用。 log10(FREQcount+1)，四位精度；约 1/2/3/4/5 对应 SUBTLWF 0.2/2/20/200/2000。 出现该词的影片百分比，两位精度。 log10(CDcount+1)，匹配词频时推荐；约 0.95/1.93/2.92/3.92 对应 SUBTLCD 0.1/1/10/100。 本次导入批次 ID。" [ref=e158]:
+                - columnheader "词形；若大写开头更常见，原表会以大写开头。" [ref=e159]: Word
+                - columnheader "在 5100 万词语料中出现的总次数。" [ref=e160]: FREQcount
+                - columnheader "出现过该词的影片数，最大 8,388。" [ref=e161]: CDcount
+                - columnheader "以小写开头出现的总次数，用于区分大小写刺激材料。" [ref=e162]: FREQlow
+                - columnheader "以小写开头出现过该词的影片数。" [ref=e163]: CDlow
+                - columnheader "每百万词频率，跨语料规模可比，论文中优先使用。" [ref=e164]: SUBTLWF
+                - columnheader "log10(FREQcount+1)，四位精度；约 1/2/3/4/5 对应 SUBTLWF 0.2/2/20/200/2000。" [ref=e165]: Lg10WF
+                - columnheader "出现该词的影片百分比，两位精度。" [ref=e166]: SUBTLCD
+                - columnheader "log10(CDcount+1)，匹配词频时推荐；约 0.95/1.93/2.92/3.92 对应 SUBTLCD 0.1/1/10/100。" [ref=e167]: Lg10CD
+                - columnheader "本次导入批次 ID。" [ref=e168]: Batch
+            - rowgroup [ref=e169]:
+              - row "Talles 2 1 0 0 0.04 0.4771 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e170]:
+                - cell "Talles" [ref=e171]
+                - cell "2" [ref=e172]
+                - cell "1" [ref=e173]
+                - cell "0" [ref=e174]
+                - cell "0" [ref=e175]
+                - cell "0.04" [ref=e176]
+                - cell "0.4771" [ref=e177]
+                - cell "0.01" [ref=e178]
+                - cell "0.301" [ref=e179]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e180]
+              - row "Tamil 4 1 0 0 0.08 0.699 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e181]:
+                - cell "Tamil" [ref=e182]
+                - cell "4" [ref=e183]
+                - cell "1" [ref=e184]
+                - cell "0" [ref=e185]
+                - cell "0" [ref=e186]
+                - cell "0.08" [ref=e187]
+                - cell "0.699" [ref=e188]
+                - cell "0.01" [ref=e189]
+                - cell "0.301" [ref=e190]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e191]
+              - row "Taha 3 1 0 0 0.06 0.6021 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e192]:
+                - cell "Taha" [ref=e193]
+                - cell "3" [ref=e194]
+                - cell "1" [ref=e195]
+                - cell "0" [ref=e196]
+                - cell "0" [ref=e197]
+                - cell "0.06" [ref=e198]
+                - cell "0.6021" [ref=e199]
+                - cell "0.01" [ref=e200]
+                - cell "0.301" [ref=e201]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e202]
+              - row "Taka 2 1 0 0 0.04 0.4771 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e203]:
+                - cell "Taka" [ref=e204]
+                - cell "2" [ref=e205]
+                - cell "1" [ref=e206]
+                - cell "0" [ref=e207]
+                - cell "0" [ref=e208]
+                - cell "0.04" [ref=e209]
+                - cell "0.4771" [ref=e210]
+                - cell "0.01" [ref=e211]
+                - cell "0.301" [ref=e212]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e213]
+              - row "taloned 2 1 2 1 0.04 0.4771 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e214]:
+                - cell "taloned" [ref=e215]
+                - cell "2" [ref=e216]
+                - cell "1" [ref=e217]
+                - cell "2" [ref=e218]
+                - cell "1" [ref=e219]
+                - cell "0.04" [ref=e220]
+                - cell "0.4771" [ref=e221]
+                - cell "0.01" [ref=e222]
+                - cell "0.301" [ref=e223]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e224]
+              - row "Tamarack 2 1 0 0 0.04 0.4771 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e225]:
+                - cell "Tamarack" [ref=e226]
+                - cell "2" [ref=e227]
+                - cell "1" [ref=e228]
+                - cell "0" [ref=e229]
+                - cell "0" [ref=e230]
+                - cell "0.04" [ref=e231]
+                - cell "0.4771" [ref=e232]
+                - cell "0.01" [ref=e233]
+                - cell "0.301" [ref=e234]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e235]
+              - row "Taconite 3 1 1 1 0.06 0.6021 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e236]:
+                - cell "Taconite" [ref=e237]
+                - cell "3" [ref=e238]
+                - cell "1" [ref=e239]
+                - cell "1" [ref=e240]
+                - cell "1" [ref=e241]
+                - cell "0.06" [ref=e242]
+                - cell "0.6021" [ref=e243]
+                - cell "0.01" [ref=e244]
+                - cell "0.301" [ref=e245]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e246]
+              - row "taffrail 2 1 2 1 0.04 0.4771 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e247]:
+                - cell "taffrail" [ref=e248]
+                - cell "2" [ref=e249]
+                - cell "1" [ref=e250]
+                - cell "2" [ref=e251]
+                - cell "1" [ref=e252]
+                - cell "0.04" [ref=e253]
+                - cell "0.4771" [ref=e254]
+                - cell "0.01" [ref=e255]
+                - cell "0.301" [ref=e256]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e257]
+              - row "Taipo 3 1 0 0 0.06 0.6021 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e258]:
+                - cell "Taipo" [ref=e259]
+                - cell "3" [ref=e260]
+                - cell "1" [ref=e261]
+                - cell "0" [ref=e262]
+                - cell "0" [ref=e263]
+                - cell "0.06" [ref=e264]
+                - cell "0.6021" [ref=e265]
+                - cell "0.01" [ref=e266]
+                - cell "0.301" [ref=e267]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e268]
+              - row "Tammie 11 1 0 0 0.22 1.0792 0.01 0.301 8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e269]:
+                - cell "Tammie" [ref=e270]
+                - cell "11" [ref=e271]
+                - cell "1" [ref=e272]
+                - cell "0" [ref=e273]
+                - cell "0" [ref=e274]
+                - cell "0.22" [ref=e275]
+                - cell "1.0792" [ref=e276]
+                - cell "0.01" [ref=e277]
+                - cell "0.301" [ref=e278]
+                - cell "8a89f445-7716-4788-bcd7-c3dc1aeac549" [ref=e279]
+          - generic [ref=e280]:
+            - paragraph [ref=e281]: 第 1 页 · 当前 10 条 · 每页 10 条
+            - generic [ref=e282]:
+              - button "上一页" [disabled]
+              - button "下一页" [ref=e283] [cursor=pointer]
+              - generic [ref=e284]:
+                - generic [ref=e285]: 跳到页
+                - generic [ref=e286]:
+                  - spinbutton "跳到页" [ref=e287]: "1"
+                  - group:
+                    - generic: 跳到页
+              - button "跳转" [ref=e288] [cursor=pointer]
+        - generic [ref=e290]:
+          - heading "从 SUBTLEXus 生成学习词条" [level=6] [ref=e291]
+          - paragraph [ref=e292]: 对应 POST /admin/word-library/words/from-subtlexus，可按最低 lg10Wf 批量生成，也可指定词表。
+          - generic [ref=e293]:
+            - generic [ref=e294]:
+              - generic: minLg10Wf
+              - generic [ref=e295]:
+                - spinbutton "minLg10Wf" [ref=e296]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e297]:
+              - generic [ref=e298]: maxRows
+              - generic [ref=e299]:
+                - spinbutton "maxRows" [ref=e300]: "500"
+                - group:
+                  - generic: maxRows
+            - generic [ref=e301]:
+              - generic [ref=e302]: reason
+              - generic [ref=e303]:
+                - textbox "reason" [ref=e304]: create learning words from SUBTLEXus source
+                - group:
+                  - generic: reason
+            - generic [ref=e305] [cursor=pointer]:
+              - generic [ref=e306]:
+                - checkbox "排除已存在词条" [checked] [ref=e307]
+                - img [ref=e308]
+              - generic [ref=e310]: 排除已存在词条
+            - generic [ref=e311]:
+              - generic: 指定 words，可换行或逗号分隔
+              - generic [ref=e312]:
+                - textbox "指定 words，可换行或逗号分隔" [ref=e313]
+                - group:
+                  - generic: 指定 words，可换行或逗号分隔
+            - button "生成学习词条" [ref=e314] [cursor=pointer]:
+              - img [ref=e316]
+              - text: 生成学习词条

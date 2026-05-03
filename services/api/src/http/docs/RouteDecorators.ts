@@ -26,6 +26,7 @@ export function Operation(summary: string, options: Pick<OperationMetadata, "sec
 
 export interface RouteSchemaDefinition {
   params?: ZodTypeAny;
+  query?: ZodTypeAny;
   body?: ZodTypeAny;
   response?: Record<number, ZodTypeAny>;
 }
@@ -48,6 +49,9 @@ export class RouteDocs {
     }
     if (definition.params) {
       schema.params = RouteDocs.toJsonSchema(definition.params);
+    }
+    if (definition.query) {
+      schema.querystring = RouteDocs.toJsonSchema(definition.query);
     }
     if (definition.body) {
       schema.body = RouteDocs.toJsonSchema(definition.body);

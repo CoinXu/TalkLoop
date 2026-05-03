@@ -1,0 +1,795 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e149]:
+    - generic [ref=e150]:
+      - text: 管理后台
+      - generic [ref=e151]:
+        - button "总览" [ref=e152] [cursor=pointer]:
+          - img [ref=e154]
+          - text: 总览
+        - button "M1 管理员" [ref=e156] [cursor=pointer]:
+          - img [ref=e158]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e160] [cursor=pointer]:
+          - img [ref=e162]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e164] [cursor=pointer]:
+          - img [ref=e166]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e169] [cursor=pointer]:
+          - img [ref=e171]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e174] [cursor=pointer]:
+          - img [ref=e176]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e178] [cursor=pointer]:
+          - img [ref=e180]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e182] [cursor=pointer]:
+          - img [ref=e184]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e186] [cursor=pointer]:
+          - img [ref=e188]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e190] [cursor=pointer]:
+          - img [ref=e192]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e194] [cursor=pointer]:
+          - img [ref=e196]
+          - text: M10 课程报告
+    - generic [ref=e216]:
+      - generic [ref=e219]:
+        - generic [ref=e220]:
+          - heading "M2 词库" [level=5] [ref=e221]
+          - paragraph [ref=e222]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e223]:
+          - generic [ref=e225]: admin
+          - button "退出" [ref=e226] [cursor=pointer]:
+            - img [ref=e228]
+            - text: 退出
+      - generic [ref=e655]:
+        - tablist [ref=e661]:
+          - tab "SUBTLEXus 导入" [ref=e662] [cursor=pointer]
+          - tab "学习词条" [selected] [ref=e663] [cursor=pointer]
+        - generic [ref=e666]:
+          - generic [ref=e667]:
+            - generic [ref=e668]:
+              - heading "创建词条" [level=6] [ref=e669]
+              - paragraph [ref=e670]: 覆盖 /admin/word-library/words 的主要字段，发布前需补齐释义、音频、频率、语境多样性和难度。
+            - generic [ref=e671]:
+              - button "清空" [ref=e672] [cursor=pointer]
+              - button "创建词条" [disabled]:
+                - generic:
+                  - img
+                - text: 创建词条
+          - generic [ref=e673]:
+            - generic [ref=e674]:
+              - generic:
+                - text: word
+                - generic: "*"
+              - generic [ref=e675]:
+                - textbox "word" [ref=e676]
+                - group:
+                  - generic: word *
+            - generic [ref=e677]:
+              - generic: lemma
+              - generic [ref=e678]:
+                - textbox "lemma" [ref=e679]
+                - group:
+                  - generic: lemma
+            - generic [ref=e680]:
+              - generic: phonetic
+              - generic [ref=e681]:
+                - textbox "phonetic" [ref=e682]
+                - group:
+                  - generic: phonetic
+            - generic [ref=e683]:
+              - generic: partOfSpeech
+              - generic [ref=e684]:
+                - textbox "partOfSpeech" [ref=e685]
+                - group:
+                  - generic: partOfSpeech
+            - generic [ref=e686]:
+              - generic: meaningCn
+              - generic [ref=e687]:
+                - textbox "meaningCn" [ref=e688]
+                - group:
+                  - generic: meaningCn
+            - generic [ref=e689]:
+              - generic: meaningEn
+              - generic [ref=e690]:
+                - textbox "meaningEn" [ref=e691]
+                - group:
+                  - generic: meaningEn
+            - generic [ref=e692]:
+              - generic: audioUrl
+              - generic [ref=e693]:
+                - textbox "audioUrl" [ref=e694]
+                - group:
+                  - generic: audioUrl
+            - generic [ref=e695]:
+              - generic [ref=e696]: audioStatus
+              - generic [ref=e697]:
+                - combobox "audioStatus missing" [ref=e698] [cursor=pointer]: missing
+                - textbox: missing
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e699]:
+              - generic [ref=e700]: publishStatus
+              - generic [ref=e701]:
+                - combobox "publishStatus draft" [ref=e702] [cursor=pointer]: draft
+                - textbox: draft
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e703]:
+              - generic [ref=e704]: reviewStatus
+              - generic [ref=e705]:
+                - combobox "reviewStatus pending_review" [ref=e706] [cursor=pointer]: pending_review
+                - textbox: pending_review
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e707]:
+              - generic: difficultyLevel
+              - generic [ref=e708]:
+                - spinbutton "difficultyLevel" [ref=e709]
+                - group:
+                  - generic: difficultyLevel
+            - generic [ref=e710]:
+              - generic: frequencyCount
+              - generic [ref=e711]:
+                - spinbutton "frequencyCount" [ref=e712]
+                - group:
+                  - generic: frequencyCount
+            - generic [ref=e713]:
+              - generic: cdCount
+              - generic [ref=e714]:
+                - spinbutton "cdCount" [ref=e715]
+                - group:
+                  - generic: cdCount
+            - generic [ref=e716]:
+              - generic: frequencyLow
+              - generic [ref=e717]:
+                - spinbutton "frequencyLow" [ref=e718]
+                - group:
+                  - generic: frequencyLow
+            - generic [ref=e719]:
+              - generic: cdLow
+              - generic [ref=e720]:
+                - spinbutton "cdLow" [ref=e721]
+                - group:
+                  - generic: cdLow
+            - generic [ref=e722]:
+              - generic: subtlwf
+              - generic [ref=e723]:
+                - textbox "subtlwf" [ref=e724]
+                - group:
+                  - generic: subtlwf
+            - generic [ref=e725]:
+              - generic: lg10wf
+              - generic [ref=e726]:
+                - textbox "lg10wf" [ref=e727]
+                - group:
+                  - generic: lg10wf
+            - generic [ref=e728]:
+              - generic: subtlcd
+              - generic [ref=e729]:
+                - textbox "subtlcd" [ref=e730]
+                - group:
+                  - generic: subtlcd
+            - generic [ref=e731]:
+              - generic: lg10cd
+              - generic [ref=e732]:
+                - textbox "lg10cd" [ref=e733]
+                - group:
+                  - generic: lg10cd
+            - generic [ref=e734]:
+              - generic: levelTags，逗号分隔
+              - generic [ref=e735]:
+                - textbox "levelTags，逗号分隔" [ref=e736]
+                - group:
+                  - generic: levelTags，逗号分隔
+            - generic [ref=e737]:
+              - generic: sceneTags，逗号分隔
+              - generic [ref=e738]:
+                - textbox "sceneTags，逗号分隔" [ref=e739]
+                - group:
+                  - generic: sceneTags，逗号分隔
+            - generic [ref=e740]:
+              - generic: commonCollocations，逗号分隔
+              - generic [ref=e741]:
+                - textbox "commonCollocations，逗号分隔" [ref=e742]
+                - group:
+                  - generic: commonCollocations，逗号分隔
+            - generic [ref=e743]:
+              - generic: hearingTrap
+              - generic [ref=e744]:
+                - textbox "hearingTrap" [ref=e745]
+                - group:
+                  - generic: hearingTrap
+            - generic [ref=e746]:
+              - generic: distractors.pronunciation
+              - generic [ref=e747]:
+                - textbox "distractors.pronunciation" [ref=e748]
+                - group:
+                  - generic: distractors.pronunciation
+            - generic [ref=e749]:
+              - generic: distractors.meaning
+              - generic [ref=e750]:
+                - textbox "distractors.meaning" [ref=e751]
+                - group:
+                  - generic: distractors.meaning
+            - generic [ref=e752]:
+              - generic: distractors.difficulty
+              - generic [ref=e753]:
+                - textbox "distractors.difficulty" [ref=e754]
+                - group:
+                  - generic: distractors.difficulty
+            - generic [ref=e755]:
+              - generic: exclusionReason
+              - generic [ref=e756]:
+                - textbox "exclusionReason" [ref=e757]
+                - group:
+                  - generic: exclusionReason
+            - generic [ref=e758]:
+              - generic [ref=e759]: reason
+              - generic [ref=e760]:
+                - textbox "reason" [ref=e761]: word library admin update
+                - group:
+                  - generic: reason
+            - generic [ref=e762] [cursor=pointer]:
+              - generic [ref=e763]:
+                - checkbox "isExcluded" [ref=e764]
+                - img [ref=e765]
+              - generic [ref=e767]: isExcluded
+        - generic [ref=e769]:
+          - generic [ref=e770]:
+            - generic [ref=e771]:
+              - heading "学习词条列表" [level=6] [ref=e772]
+              - paragraph [ref=e773]: 对应 GET /admin/word-library/words，覆盖状态、音频、释义、频率、标签和排除字段。
+            - button "刷新词条" [ref=e774] [cursor=pointer]
+          - generic [ref=e775]:
+            - generic [ref=e776]:
+              - generic: keyword
+              - generic [ref=e777]:
+                - textbox "keyword" [ref=e778]
+                - group:
+                  - generic: keyword
+            - generic [ref=e779]:
+              - generic: publishStatus
+              - generic [ref=e780]:
+                - combobox "publishStatus" [ref=e781] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e782]:
+              - generic: reviewStatus
+              - generic [ref=e783]:
+                - combobox "reviewStatus" [ref=e784] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e785]:
+              - generic: audioStatus
+              - generic [ref=e786]:
+                - combobox "audioStatus" [ref=e787] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e788]:
+              - generic: minFrequencyCount
+              - generic [ref=e789]:
+                - spinbutton "minFrequencyCount" [ref=e790]
+                - group:
+                  - generic: minFrequencyCount
+            - generic [ref=e791]:
+              - generic: minLg10wf
+              - generic [ref=e792]:
+                - spinbutton "minLg10wf" [ref=e793]
+                - group:
+                  - generic: minLg10wf
+            - generic [ref=e794]:
+              - generic [ref=e795]: limit
+              - generic [ref=e796]:
+                - spinbutton "limit" [ref=e797]: "10"
+                - group:
+                  - generic: limit
+            - generic [ref=e798]:
+              - generic [ref=e799]: offset
+              - generic [ref=e800]:
+                - spinbutton "offset" [ref=e801]: "0"
+                - group:
+                  - generic: offset
+            - generic [ref=e802]:
+              - generic [ref=e803]: sortBy
+              - generic [ref=e804]:
+                - combobox "sortBy createdAt" [ref=e805] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e806]:
+              - generic [ref=e807]: sortOrder
+              - generic [ref=e808]:
+                - combobox "sortOrder desc" [ref=e809] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+            - generic [ref=e810] [cursor=pointer]:
+              - generic [ref=e811]:
+                - checkbox "有释义" [ref=e812]
+                - img [ref=e813]
+              - generic [ref=e815]: 有释义
+            - generic [ref=e816] [cursor=pointer]:
+              - generic [ref=e817]:
+                - checkbox "有音频" [ref=e818]
+                - img [ref=e819]
+              - generic [ref=e821]: 有音频
+            - generic [ref=e822] [cursor=pointer]:
+              - generic [ref=e823]:
+                - checkbox "仅排除词" [ref=e824]
+                - img [ref=e825]
+              - generic [ref=e827]: 仅排除词
+          - generic [ref=e828]:
+            - generic [ref=e830]: 已选 0 条
+            - generic [ref=e831]:
+              - generic: 批量审核
+              - generic [ref=e832]:
+                - combobox "批量审核" [ref=e833] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: 批量审核
+            - generic [ref=e834]:
+              - generic: 批量音频
+              - generic [ref=e835]:
+                - combobox "批量音频" [ref=e836] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: 批量音频
+            - generic [ref=e837]:
+              - generic: 批量发布
+              - generic [ref=e838]:
+                - combobox "批量发布" [ref=e839] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: 批量发布
+            - button "批量应用" [disabled]
+            - button "清除选择" [disabled]
+          - table [ref=e841]:
+            - rowgroup [ref=e842]:
+              - row "操作 词条展示词形；大小写保留来源词表或人工录入结果。 归一化词元，用于匹配、去重和学习记录关联。 释义 FREQcount 为语料出现次数；CDcount 为出现过该词的影片数。 SUBTLWF 为每百万词频率；Lg10WF 为 log10(FREQcount+1)。 状态 标签/排除" [ref=e843]:
+                - columnheader [ref=e844]:
+                  - generic [ref=e845] [cursor=pointer]:
+                    - checkbox [ref=e846]
+                    - img [ref=e847]
+                - columnheader "操作" [ref=e849]
+                - columnheader "词条展示词形；大小写保留来源词表或人工录入结果。" [ref=e850]: Word
+                - columnheader "归一化词元，用于匹配、去重和学习记录关联。" [ref=e851]: Lemma
+                - columnheader "释义" [ref=e852]
+                - columnheader "FREQcount 为语料出现次数；CDcount 为出现过该词的影片数。" [ref=e853]: FREQ/CD
+                - columnheader "SUBTLWF 为每百万词频率；Lg10WF 为 log10(FREQcount+1)。" [ref=e854]: SUBTLEX
+                - columnheader "状态" [ref=e855]
+                - columnheader "标签/排除" [ref=e856]
+            - rowgroup [ref=e857]:
+              - row "编辑 发布 draft 审核 pending 音频 missing I i 2038529 / 8372 39971.16 · 6.3093 draft · pending_review · missing" [ref=e858]:
+                - cell [ref=e859]:
+                  - generic [ref=e860] [cursor=pointer]:
+                    - checkbox [ref=e861]
+                    - img [ref=e862]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e864]:
+                  - generic [ref=e865]:
+                    - button "编辑" [ref=e866] [cursor=pointer]
+                    - generic [ref=e867]:
+                      - generic [ref=e868]: 发布
+                      - generic [ref=e869]:
+                        - combobox "发布 draft" [ref=e870] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e871]:
+                      - generic [ref=e872]: 审核
+                      - generic [ref=e873]:
+                        - combobox "审核 pending" [ref=e874] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e875]:
+                      - generic [ref=e876]: 音频
+                      - generic [ref=e877]:
+                        - combobox "音频 missing" [ref=e878] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "I" [ref=e879]
+                - cell "i" [ref=e880]
+                - cell [ref=e881]
+                - cell "2038529 / 8372" [ref=e882]
+                - cell "39971.16 · 6.3093" [ref=e883]
+                - cell "draft · pending_review · missing" [ref=e884]
+                - cell [ref=e885]
+              - row "编辑 发布 draft 审核 pending 音频 missing the the 1501908 / 8388 29449.18 · 6.1766 draft · pending_review · missing" [ref=e886]:
+                - cell [ref=e887]:
+                  - generic [ref=e888] [cursor=pointer]:
+                    - checkbox [ref=e889]
+                    - img [ref=e890]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e892]:
+                  - generic [ref=e893]:
+                    - button "编辑" [ref=e894] [cursor=pointer]
+                    - generic [ref=e895]:
+                      - generic [ref=e896]: 发布
+                      - generic [ref=e897]:
+                        - combobox "发布 draft" [ref=e898] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e899]:
+                      - generic [ref=e900]: 审核
+                      - generic [ref=e901]:
+                        - combobox "审核 pending" [ref=e902] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e903]:
+                      - generic [ref=e904]: 音频
+                      - generic [ref=e905]:
+                        - combobox "音频 missing" [ref=e906] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "the" [ref=e907]
+                - cell "the" [ref=e908]
+                - cell [ref=e909]
+                - cell "1501908 / 8388" [ref=e910]
+                - cell "29449.18 · 6.1766" [ref=e911]
+                - cell "draft · pending_review · missing" [ref=e912]
+                - cell [ref=e913]
+              - row "编辑 发布 draft 审核 pending 音频 missing to to 1156570 / 8383 22677.84 · 6.0632 draft · pending_review · missing" [ref=e914]:
+                - cell [ref=e915]:
+                  - generic [ref=e916] [cursor=pointer]:
+                    - checkbox [ref=e917]
+                    - img [ref=e918]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e920]:
+                  - generic [ref=e921]:
+                    - button "编辑" [ref=e922] [cursor=pointer]
+                    - generic [ref=e923]:
+                      - generic [ref=e924]: 发布
+                      - generic [ref=e925]:
+                        - combobox "发布 draft" [ref=e926] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e927]:
+                      - generic [ref=e928]: 审核
+                      - generic [ref=e929]:
+                        - combobox "审核 pending" [ref=e930] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e931]:
+                      - generic [ref=e932]: 音频
+                      - generic [ref=e933]:
+                        - combobox "音频 missing" [ref=e934] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "to" [ref=e935]
+                - cell "to" [ref=e936]
+                - cell [ref=e937]
+                - cell "1156570 / 8383" [ref=e938]
+                - cell "22677.84 · 6.0632" [ref=e939]
+                - cell "draft · pending_review · missing" [ref=e940]
+                - cell [ref=e941]
+              - row "编辑 发布 draft 审核 pending 音频 missing s s 1057301 / 8377 20731.39 · 6.0242 draft · pending_review · missing" [ref=e942]:
+                - cell [ref=e943]:
+                  - generic [ref=e944] [cursor=pointer]:
+                    - checkbox [ref=e945]
+                    - img [ref=e946]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e948]:
+                  - generic [ref=e949]:
+                    - button "编辑" [ref=e950] [cursor=pointer]
+                    - generic [ref=e951]:
+                      - generic [ref=e952]: 发布
+                      - generic [ref=e953]:
+                        - combobox "发布 draft" [ref=e954] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e955]:
+                      - generic [ref=e956]: 审核
+                      - generic [ref=e957]:
+                        - combobox "审核 pending" [ref=e958] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e959]:
+                      - generic [ref=e960]: 音频
+                      - generic [ref=e961]:
+                        - combobox "音频 missing" [ref=e962] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "s" [ref=e963]
+                - cell "s" [ref=e964]
+                - cell [ref=e965]
+                - cell "1057301 / 8377" [ref=e966]
+                - cell "20731.39 · 6.0242" [ref=e967]
+                - cell "draft · pending_review · missing" [ref=e968]
+                - cell [ref=e969]
+              - row "编辑 发布 draft 审核 pending 音频 missing a a 1041179 / 8382 20415.27 · 6.0175 draft · pending_review · missing" [ref=e970]:
+                - cell [ref=e971]:
+                  - generic [ref=e972] [cursor=pointer]:
+                    - checkbox [ref=e973]
+                    - img [ref=e974]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e976]:
+                  - generic [ref=e977]:
+                    - button "编辑" [ref=e978] [cursor=pointer]
+                    - generic [ref=e979]:
+                      - generic [ref=e980]: 发布
+                      - generic [ref=e981]:
+                        - combobox "发布 draft" [ref=e982] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e983]:
+                      - generic [ref=e984]: 审核
+                      - generic [ref=e985]:
+                        - combobox "审核 pending" [ref=e986] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e987]:
+                      - generic [ref=e988]: 音频
+                      - generic [ref=e989]:
+                        - combobox "音频 missing" [ref=e990] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "a" [ref=e991]
+                - cell "a" [ref=e992]
+                - cell [ref=e993]
+                - cell "1041179 / 8382" [ref=e994]
+                - cell "20415.27 · 6.0175" [ref=e995]
+                - cell "draft · pending_review · missing" [ref=e996]
+                - cell [ref=e997]
+              - row "编辑 发布 draft 审核 pending 音频 missing it it 963712 / 8377 18896.31 · 5.9839 draft · pending_review · missing" [ref=e998]:
+                - cell [ref=e999]:
+                  - generic [ref=e1000] [cursor=pointer]:
+                    - checkbox [ref=e1001]
+                    - img [ref=e1002]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e1004]:
+                  - generic [ref=e1005]:
+                    - button "编辑" [ref=e1006] [cursor=pointer]
+                    - generic [ref=e1007]:
+                      - generic [ref=e1008]: 发布
+                      - generic [ref=e1009]:
+                        - combobox "发布 draft" [ref=e1010] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e1011]:
+                      - generic [ref=e1012]: 审核
+                      - generic [ref=e1013]:
+                        - combobox "审核 pending" [ref=e1014] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e1015]:
+                      - generic [ref=e1016]: 音频
+                      - generic [ref=e1017]:
+                        - combobox "音频 missing" [ref=e1018] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "it" [ref=e1019]
+                - cell "it" [ref=e1020]
+                - cell [ref=e1021]
+                - cell "963712 / 8377" [ref=e1022]
+                - cell "18896.31 · 5.9839" [ref=e1023]
+                - cell "draft · pending_review · missing" [ref=e1024]
+                - cell [ref=e1025]
+              - row "编辑 发布 draft 审核 pending 音频 missing t t 733338 / 8355 14379.18 · 5.8653 draft · pending_review · missing" [ref=e1026]:
+                - cell [ref=e1027]:
+                  - generic [ref=e1028] [cursor=pointer]:
+                    - checkbox [ref=e1029]
+                    - img [ref=e1030]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e1032]:
+                  - generic [ref=e1033]:
+                    - button "编辑" [ref=e1034] [cursor=pointer]
+                    - generic [ref=e1035]:
+                      - generic [ref=e1036]: 发布
+                      - generic [ref=e1037]:
+                        - combobox "发布 draft" [ref=e1038] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e1039]:
+                      - generic [ref=e1040]: 审核
+                      - generic [ref=e1041]:
+                        - combobox "审核 pending" [ref=e1042] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e1043]:
+                      - generic [ref=e1044]: 音频
+                      - generic [ref=e1045]:
+                        - combobox "音频 missing" [ref=e1046] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "t" [ref=e1047]
+                - cell "t" [ref=e1048]
+                - cell [ref=e1049]
+                - cell "733338 / 8355" [ref=e1050]
+                - cell "14379.18 · 5.8653" [ref=e1051]
+                - cell "draft · pending_review · missing" [ref=e1052]
+                - cell [ref=e1053]
+              - row "编辑 发布 draft 审核 pending 音频 missing that that 719677 / 8368 14111.31 · 5.8571 draft · pending_review · missing" [ref=e1054]:
+                - cell [ref=e1055]:
+                  - generic [ref=e1056] [cursor=pointer]:
+                    - checkbox [ref=e1057]
+                    - img [ref=e1058]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e1060]:
+                  - generic [ref=e1061]:
+                    - button "编辑" [ref=e1062] [cursor=pointer]
+                    - generic [ref=e1063]:
+                      - generic [ref=e1064]: 发布
+                      - generic [ref=e1065]:
+                        - combobox "发布 draft" [ref=e1066] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e1067]:
+                      - generic [ref=e1068]: 审核
+                      - generic [ref=e1069]:
+                        - combobox "审核 pending" [ref=e1070] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e1071]:
+                      - generic [ref=e1072]: 音频
+                      - generic [ref=e1073]:
+                        - combobox "音频 missing" [ref=e1074] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "that" [ref=e1075]
+                - cell "that" [ref=e1076]
+                - cell [ref=e1077]
+                - cell "719677 / 8368" [ref=e1078]
+                - cell "14111.31 · 5.8571" [ref=e1079]
+                - cell "draft · pending_review · missing" [ref=e1080]
+                - cell [ref=e1081]
+              - row "编辑 发布 draft 审核 pending 音频 missing and and 682780 / 8379 13387.84 · 5.8343 draft · pending_review · missing" [ref=e1082]:
+                - cell [ref=e1083]:
+                  - generic [ref=e1084] [cursor=pointer]:
+                    - checkbox [ref=e1085]
+                    - img [ref=e1086]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e1088]:
+                  - generic [ref=e1089]:
+                    - button "编辑" [ref=e1090] [cursor=pointer]
+                    - generic [ref=e1091]:
+                      - generic [ref=e1092]: 发布
+                      - generic [ref=e1093]:
+                        - combobox "发布 draft" [ref=e1094] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e1095]:
+                      - generic [ref=e1096]: 审核
+                      - generic [ref=e1097]:
+                        - combobox "审核 pending" [ref=e1098] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e1099]:
+                      - generic [ref=e1100]: 音频
+                      - generic [ref=e1101]:
+                        - combobox "音频 missing" [ref=e1102] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "and" [ref=e1103]
+                - cell "and" [ref=e1104]
+                - cell [ref=e1105]
+                - cell "682780 / 8379" [ref=e1106]
+                - cell "13387.84 · 5.8343" [ref=e1107]
+                - cell "draft · pending_review · missing" [ref=e1108]
+                - cell [ref=e1109]
+              - row "编辑 发布 draft 审核 pending 音频 missing you you 2134713 / 8381 41857.12 · 6.3293 draft · pending_review · missing" [ref=e1110]:
+                - cell [ref=e1111]:
+                  - generic [ref=e1112] [cursor=pointer]:
+                    - checkbox [ref=e1113]
+                    - img [ref=e1114]
+                - cell "编辑 发布 draft 审核 pending 音频 missing" [ref=e1116]:
+                  - generic [ref=e1117]:
+                    - button "编辑" [ref=e1118] [cursor=pointer]
+                    - generic [ref=e1119]:
+                      - generic [ref=e1120]: 发布
+                      - generic [ref=e1121]:
+                        - combobox "发布 draft" [ref=e1122] [cursor=pointer]: draft
+                        - textbox: draft
+                        - img
+                        - group:
+                          - generic: 发布
+                    - generic [ref=e1123]:
+                      - generic [ref=e1124]: 审核
+                      - generic [ref=e1125]:
+                        - combobox "审核 pending" [ref=e1126] [cursor=pointer]: pending
+                        - textbox: pending_review
+                        - img
+                        - group:
+                          - generic: 审核
+                    - generic [ref=e1127]:
+                      - generic [ref=e1128]: 音频
+                      - generic [ref=e1129]:
+                        - combobox "音频 missing" [ref=e1130] [cursor=pointer]: missing
+                        - textbox: missing
+                        - img
+                        - group:
+                          - generic: 音频
+                - cell "you" [ref=e1131]
+                - cell "you" [ref=e1132]
+                - cell [ref=e1133]
+                - cell "2134713 / 8381" [ref=e1134]
+                - cell "41857.12 · 6.3293" [ref=e1135]
+                - cell "draft · pending_review · missing" [ref=e1136]
+                - cell [ref=e1137]
+          - generic [ref=e1138]:
+            - paragraph [ref=e1139]: 第 1 页 · 当前 10 条 · 每页 10 条
+            - generic [ref=e1140]:
+              - button "上一页" [disabled]
+              - button "下一页" [ref=e1141] [cursor=pointer]
+              - generic [ref=e1142]:
+                - generic [ref=e1143]: 跳到页
+                - generic [ref=e1144]:
+                  - spinbutton "跳到页" [ref=e1145]: "1"
+                  - group:
+                    - generic: 跳到页
+              - button "跳转" [ref=e1146] [cursor=pointer]

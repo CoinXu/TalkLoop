@@ -11,9 +11,9 @@
     "test:unit": "vitest run src/**/*.test.ts",
     "test:integration": "tsx src/scripts/smokeDatabase.ts",
     "db:provision": "tsx src/scripts/provisionDatabase.ts",
+    "db:reset:local": "tsx src/scripts/resetLocalDatabase.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "import:learning-unit": "tsx src/scripts/importLearningUnit.ts"
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
@@ -28,6 +28,7 @@
     "pdf-parse": "^1.1.1",
     "pg": "^8.13.1",
     "pino": "^9.5.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.25.2"
   },

@@ -1,0 +1,51 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e18]:
+    - tablist [ref=e22]:
+      - tab "今日任务" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - text: 今日任务
+      - tab "水平评估" [selected] [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+        - text: 水平评估
+      - tab "我的词库" [ref=e29] [cursor=pointer]:
+        - img [ref=e30]
+        - text: 我的词库
+      - tab "课程" [ref=e32] [cursor=pointer]:
+        - img [ref=e33]
+        - text: 课程
+      - tab "听读" [ref=e36] [cursor=pointer]:
+        - img [ref=e37]
+        - text: 听读
+      - tab "报告" [ref=e39] [cursor=pointer]:
+        - img [ref=e40]
+        - text: 报告
+      - tab "个人" [ref=e42] [cursor=pointer]:
+        - img [ref=e43]
+        - text: 个人
+    - generic [ref=e49]:
+      - heading "首次水平评估" [level=5] [ref=e50]
+      - paragraph [ref=e51]: 使用阅读友好的选项收集日常英语接触量、阅读理解熟悉度和听力痛点。
+      - generic [ref=e52]:
+        - generic [ref=e54]: 很少接触英语内容
+        - generic [ref=e56]: 偶尔看英语短视频或文章
+        - generic [ref=e58]: 能读懂熟悉主题文章
+        - generic [ref=e60]: 经常听读英文材料
+      - paragraph [ref=e61]: 当前配置：默认 v1.0
+      - alert [ref=e63]:
+        - img [ref=e65]
+        - generic [ref=e67]: 评估已提交，但没有生成激活词。请先在后台把词条补齐到已审核、已发布、音频就绪且未排除。
+      - button "生成我的激活词库" [ref=e62] [cursor=pointer]: 生成我的激活词库
+  - alert [ref=e68]:
+    - generic [ref=e69]: 已创建本地学习身份，可直接完成评估和练习。

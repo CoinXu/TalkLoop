@@ -1,27 +1,23 @@
-import type { Session } from "../types";
+import type { UserSession } from "../types";
 
-const storageKey = "echo-english-session";
+const storageKey = "learning-activation-user-session";
 
-export function loadSession(): Session | null {
+export function loadSession(): UserSession | null {
   const raw = window.localStorage.getItem(storageKey);
   if (!raw) {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(raw) as Session;
-    if (!parsed.sessionId || Date.parse(parsed.expiresAt) <= Date.now()) {
-      clearSession();
-      return null;
-    }
-    return parsed;
+    const parsed = JSON.parse(raw) as UserSession;
+    return parsed.sessionId ? parsed : null;
   } catch {
     clearSession();
     return null;
   }
 }
 
-export function saveSession(session: Session): void {
+export function saveSession(session: UserSession): void {
   window.localStorage.setItem(storageKey, JSON.stringify(session));
 }
 

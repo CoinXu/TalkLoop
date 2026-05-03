@@ -1,0 +1,88 @@
+- generic [ref=e116]:
+  - banner [ref=e117]:
+    - generic [ref=e118]:
+      - generic [ref=e119]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e120]
+        - paragraph [ref=e121]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e122]:
+        - button "学习端" [ref=e123] [cursor=pointer]:
+          - img [ref=e125]
+          - text: 学习端
+        - button "管理后台" [ref=e127] [cursor=pointer]:
+          - img [ref=e129]
+          - text: 管理后台
+  - main [ref=e131]:
+    - tablist [ref=e135]:
+      - tab "今日任务" [selected] [ref=e136] [cursor=pointer]:
+        - img [ref=e137]
+        - text: 今日任务
+      - tab "水平评估" [ref=e139] [cursor=pointer]:
+        - img [ref=e140]
+        - text: 水平评估
+      - tab "我的词库" [ref=e142] [cursor=pointer]:
+        - img [ref=e143]
+        - text: 我的词库
+      - tab "课程" [ref=e145] [cursor=pointer]:
+        - img [ref=e146]
+        - text: 课程
+      - tab "听读" [ref=e149] [cursor=pointer]:
+        - img [ref=e150]
+        - text: 听读
+      - tab "报告" [ref=e152] [cursor=pointer]:
+        - img [ref=e153]
+        - text: 报告
+      - tab "个人" [ref=e155] [cursor=pointer]:
+        - img [ref=e156]
+        - text: 个人
+    - generic [ref=e159]:
+      - generic [ref=e161]:
+        - generic [ref=e162]:
+          - generic [ref=e163]:
+            - heading "今日激活计划" [level=5] [ref=e164]
+            - paragraph [ref=e165]: 基于红黄绿词库生成听辨、复习和跟读任务。
+          - generic [ref=e166]:
+            - generic [ref=e168]: 红 1
+            - generic [ref=e170]: 黄 0
+            - generic [ref=e172]: 绿 0
+        - generic [ref=e173]:
+          - generic [ref=e174]:
+            - paragraph [ref=e175]: 任务数
+            - heading "0" [level=6] [ref=e176]
+          - generic [ref=e177]:
+            - paragraph [ref=e178]: 预计分钟
+            - heading "15" [level=6] [ref=e179]
+          - generic [ref=e180]:
+            - paragraph [ref=e181]: 完成进度
+            - heading "0/0" [level=6] [ref=e182]
+          - generic [ref=e183]:
+            - paragraph [ref=e184]: 策略
+            - heading "default-v1.0" [level=6] [ref=e185]
+        - generic [ref=e186]:
+          - paragraph [ref=e187]: 当前身份：local-demo-user
+          - button "刷新今日计划" [ref=e188] [cursor=pointer]:
+            - img [ref=e190]
+            - text: 刷新今日计划
+          - button "重新创建身份" [ref=e192] [cursor=pointer]
+      - alert [ref=e193]:
+        - img [ref=e195]
+        - generic [ref=e197]: 当前身份已有 1 个激活词，但今天的任务是在词库为空时生成的空计划。后端会复用当天任务，不会自动重建；请重新创建身份后再做水平评估，或等后端提供重建今日任务接口。
+      - generic [ref=e198]:
+        - generic [ref=e200]:
+          - generic [ref=e201]:
+            - heading "听音辨义" [level=6] [ref=e202]
+            - generic [ref=e204]: 0 项
+          - separator [ref=e205]
+          - paragraph [ref=e207]: 暂无该类型任务。
+        - generic [ref=e209]:
+          - generic [ref=e210]:
+            - heading "词汇复习" [level=6] [ref=e211]
+            - generic [ref=e213]: 0 项
+          - separator [ref=e214]
+          - paragraph [ref=e216]: 暂无该类型任务。
+        - generic [ref=e218]:
+          - generic [ref=e219]:
+            - heading "句子跟读" [level=6] [ref=e220]
+            - generic [ref=e222]: 0 项
+          - separator [ref=e223]
+          - paragraph [ref=e225]: 暂无该类型任务。
+      - paragraph [ref=e228]: 今日任务为空，请刷新今日计划。

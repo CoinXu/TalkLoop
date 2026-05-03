@@ -1,0 +1,69 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e7]
+        - paragraph [ref=e8]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e9]:
+        - button "学习端" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+          - text: 学习端
+        - button "管理后台" [ref=e14] [cursor=pointer]:
+          - img [ref=e16]
+          - text: 管理后台
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - text: 管理后台
+      - generic [ref=e20]:
+        - button "总览" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+          - text: 总览
+        - button "M1 管理员" [ref=e25] [cursor=pointer]:
+          - img [ref=e27]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e29] [cursor=pointer]:
+          - img [ref=e31]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e33] [cursor=pointer]:
+          - img [ref=e35]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e38] [cursor=pointer]:
+          - img [ref=e40]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e43] [cursor=pointer]:
+          - img [ref=e45]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e47] [cursor=pointer]:
+          - img [ref=e49]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e51] [cursor=pointer]:
+          - img [ref=e53]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e55] [cursor=pointer]:
+          - img [ref=e57]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e59] [cursor=pointer]:
+          - img [ref=e61]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e63] [cursor=pointer]:
+          - img [ref=e65]
+          - text: M10 课程报告
+    - generic [ref=e69]:
+      - heading "管理员登录" [level=5] [ref=e70]
+      - paragraph [ref=e71]: 管理员不开放公开注册，由已有 super_admin 在 M1 创建和重置账号。
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]: 登录名
+          - generic [ref=e75]:
+            - textbox "登录名" [ref=e76]: admin
+            - group:
+              - generic: 登录名
+        - generic [ref=e77]:
+          - generic [ref=e78]: 密码
+          - generic [ref=e79]:
+            - textbox "密码" [ref=e80]: admin123
+            - group:
+              - generic: 密码
+        - button "登录" [ref=e81] [cursor=pointer]:
+          - img [ref=e83]
+          - text: 登录

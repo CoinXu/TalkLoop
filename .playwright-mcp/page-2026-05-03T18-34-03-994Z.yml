@@ -1,0 +1,360 @@
+- generic [ref=e1608]:
+  - banner [ref=e1609]:
+    - generic [ref=e1610]:
+      - generic [ref=e1611]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e2904]
+        - paragraph [ref=e1613]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e1614]:
+        - button "学习端" [ref=e2905] [cursor=pointer]:
+          - img [ref=e1617]
+          - text: 学习端
+        - button "管理后台" [ref=e2906] [cursor=pointer]:
+          - img [ref=e1621]
+          - text: 管理后台
+  - main [ref=e1623]:
+    - generic [ref=e1624]:
+      - text: 管理后台
+      - generic [ref=e1625]:
+        - button "总览" [ref=e2907] [cursor=pointer]:
+          - img [ref=e1628]
+          - text: 总览
+        - button "M1 管理员" [ref=e2908] [cursor=pointer]:
+          - img [ref=e1632]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e2909] [cursor=pointer]:
+          - img [ref=e1636]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e2910] [cursor=pointer]:
+          - img [ref=e1640]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e2911] [cursor=pointer]:
+          - img [ref=e1645]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e2912] [cursor=pointer]:
+          - img [ref=e1650]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e2913] [cursor=pointer]:
+          - img [ref=e1654]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e2914] [cursor=pointer]:
+          - img [ref=e1658]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e2915] [cursor=pointer]:
+          - img [ref=e1662]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e2916] [cursor=pointer]:
+          - img [ref=e1666]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e2917] [cursor=pointer]:
+          - img [ref=e1670]
+          - text: M10 课程报告
+    - generic [ref=e1673]:
+      - generic [ref=e1676]:
+        - generic [ref=e1677]:
+          - heading "M2 词库" [level=5] [ref=e2918]
+          - paragraph [ref=e1679]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e1680]:
+          - generic [ref=e1682]: admin
+          - button "退出" [ref=e2919] [cursor=pointer]:
+            - img [ref=e1685]
+            - text: 退出
+      - generic [ref=e2920]:
+        - tablist [ref=e2926]:
+          - tab "SUBTLEXus 导入" [ref=e2927] [cursor=pointer]
+          - tab "学习词条" [selected] [ref=e2928] [cursor=pointer]
+        - generic [ref=e2931]:
+          - generic [ref=e2932]:
+            - generic [ref=e2933]:
+              - heading "学习词条列表" [level=6] [ref=e2934]
+              - paragraph [ref=e2935]: 对应 GET /admin/word-library/words，覆盖状态、音频、释义、频率、标签和排除字段。
+            - generic [ref=e2936]:
+              - button "刷新词条" [ref=e2937] [cursor=pointer]
+              - button "创建词条" [ref=e2938] [cursor=pointer]:
+                - img [ref=e2940]
+                - text: 创建词条
+          - generic [ref=e2942]:
+            - generic [ref=e2943]:
+              - generic: keyword
+              - generic [ref=e2944]:
+                - textbox "keyword" [ref=e2945]
+                - group:
+                  - generic: keyword
+            - generic [ref=e2946]:
+              - generic: publishStatus
+              - generic [ref=e2947]:
+                - combobox "publishStatus" [ref=e2948] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e2949]:
+              - generic: reviewStatus
+              - generic [ref=e2950]:
+                - combobox "reviewStatus" [ref=e2951] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e2952]:
+              - generic: audioStatus
+              - generic [ref=e2953]:
+                - combobox "audioStatus" [ref=e2954] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e2955]:
+              - generic: minFrequencyCount
+              - generic [ref=e2956]:
+                - spinbutton "minFrequencyCount" [ref=e2957]
+                - group:
+                  - generic: minFrequencyCount
+            - generic [ref=e2958]:
+              - generic: minLg10wf
+              - generic [ref=e2959]:
+                - spinbutton "minLg10wf" [ref=e2960]
+                - group:
+                  - generic: minLg10wf
+            - generic [ref=e2961]:
+              - generic [ref=e2962]: limit
+              - generic [ref=e2963]:
+                - spinbutton "limit" [ref=e2964]: "10"
+                - group:
+                  - generic: limit
+            - generic [ref=e2965]:
+              - generic [ref=e2966]: offset
+              - generic [ref=e2967]:
+                - spinbutton "offset" [ref=e2968]: "0"
+                - group:
+                  - generic: offset
+            - generic [ref=e2969]:
+              - generic [ref=e2970]: sortBy
+              - generic [ref=e2971]:
+                - combobox "sortBy createdAt" [ref=e2972] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e2973]:
+              - generic [ref=e2974]: sortOrder
+              - generic [ref=e2975]:
+                - combobox "sortOrder desc" [ref=e2976] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+            - generic [ref=e2977] [cursor=pointer]:
+              - generic [ref=e2978]:
+                - checkbox "有释义" [ref=e2979]
+                - img [ref=e2980]
+              - generic [ref=e2982]: 有释义
+            - generic [ref=e2983] [cursor=pointer]:
+              - generic [ref=e2984]:
+                - checkbox "有音频" [ref=e2985]
+                - img [ref=e2986]
+              - generic [ref=e2988]: 有音频
+            - generic [ref=e2989] [cursor=pointer]:
+              - generic [ref=e2990]:
+                - checkbox "仅排除词" [ref=e2991]
+                - img [ref=e2992]
+              - generic [ref=e2994]: 仅排除词
+          - generic [ref=e2995]:
+            - generic [ref=e2996]:
+              - generic [ref=e2998]: 已选 1 条
+              - generic [ref=e2999]:
+                - generic: 批量审核
+                - generic [ref=e3000]:
+                  - combobox "批量审核" [ref=e3001] [cursor=pointer]
+                  - textbox
+                  - img
+                  - group:
+                    - generic: 批量审核
+              - generic [ref=e3002]:
+                - generic: 批量音频
+                - generic [ref=e3003]:
+                  - combobox "批量音频" [ref=e3004] [cursor=pointer]
+                  - textbox
+                  - img
+                  - group:
+                    - generic: 批量音频
+              - generic [ref=e3005]:
+                - generic: 批量发布
+                - generic [ref=e3006]:
+                  - combobox "批量发布" [ref=e3007] [cursor=pointer]
+                  - textbox
+                  - img
+                  - group:
+                    - generic: 批量发布
+              - button "批量应用" [disabled]
+              - button "清除选择" [ref=e3190] [cursor=pointer]
+            - alert [ref=e3008]:
+              - img [ref=e3010]
+              - generic [ref=e3012]: 审核决定词条内容是否可信；音频表示是否可用于听力练习；发布决定学习端和激活计划是否能使用该词。未选中的状态不会被修改。
+          - table [ref=e3014]:
+            - rowgroup [ref=e3015]:
+              - row "资料 词条展示词形；大小写保留来源词表或人工录入结果。 归一化词元，用于匹配、去重和学习记录关联。 释义 FREQcount 为语料出现次数；CDcount 为出现过该词的影片数。 SUBTLWF 为每百万词频率；Lg10WF 为 log10(FREQcount+1)。 状态 标签/排除" [ref=e3016]:
+                - columnheader [ref=e3017]:
+                  - generic [ref=e3018] [cursor=pointer]:
+                    - checkbox [ref=e3019]
+                    - img [ref=e3191]
+                - columnheader "资料" [ref=e3022]
+                - columnheader "词条展示词形；大小写保留来源词表或人工录入结果。" [ref=e3023]: Word
+                - columnheader "归一化词元，用于匹配、去重和学习记录关联。" [ref=e3024]: Lemma
+                - columnheader "释义" [ref=e3025]
+                - columnheader "FREQcount 为语料出现次数；CDcount 为出现过该词的影片数。" [ref=e3026]: FREQ/CD
+                - columnheader "SUBTLWF 为每百万词频率；Lg10WF 为 log10(FREQcount+1)。" [ref=e3027]: SUBTLEX
+                - columnheader "状态" [ref=e3028]
+                - columnheader "标签/排除" [ref=e3029]
+            - rowgroup [ref=e3030]:
+              - row "编辑资料 s s 1057301 / 8377 20731.39 · 6.0242 draft · pending_review · missing" [ref=e3031]:
+                - cell [ref=e3032]:
+                  - generic [ref=e3033] [cursor=pointer]:
+                    - checkbox [checked] [active] [ref=e3034]
+                    - img [ref=e3193]
+                - cell "编辑资料" [ref=e3037]:
+                  - button "编辑资料" [ref=e3038] [cursor=pointer]: 编辑资料
+                - cell "s" [ref=e3039]
+                - cell "s" [ref=e3040]
+                - cell [ref=e3041]
+                - cell "1057301 / 8377" [ref=e3042]
+                - cell "20731.39 · 6.0242" [ref=e3043]
+                - cell "draft · pending_review · missing" [ref=e3044]
+                - cell [ref=e3045]
+              - row "编辑资料 a a 1041179 / 8382 20415.27 · 6.0175 draft · pending_review · missing" [ref=e3046]:
+                - cell [ref=e3047]:
+                  - generic [ref=e3048] [cursor=pointer]:
+                    - checkbox [ref=e3049]
+                    - img [ref=e3050]
+                - cell "编辑资料" [ref=e3052]:
+                  - button "编辑资料" [ref=e3053] [cursor=pointer]
+                - cell "a" [ref=e3054]
+                - cell "a" [ref=e3055]
+                - cell [ref=e3056]
+                - cell "1041179 / 8382" [ref=e3057]
+                - cell "20415.27 · 6.0175" [ref=e3058]
+                - cell "draft · pending_review · missing" [ref=e3059]
+                - cell [ref=e3060]
+              - row "编辑资料 it it 963712 / 8377 18896.31 · 5.9839 draft · pending_review · missing" [ref=e3061]:
+                - cell [ref=e3062]:
+                  - generic [ref=e3063] [cursor=pointer]:
+                    - checkbox [ref=e3064]
+                    - img [ref=e3065]
+                - cell "编辑资料" [ref=e3067]:
+                  - button "编辑资料" [ref=e3068] [cursor=pointer]
+                - cell "it" [ref=e3069]
+                - cell "it" [ref=e3070]
+                - cell [ref=e3071]
+                - cell "963712 / 8377" [ref=e3072]
+                - cell "18896.31 · 5.9839" [ref=e3073]
+                - cell "draft · pending_review · missing" [ref=e3074]
+                - cell [ref=e3075]
+              - row "编辑资料 t t 733338 / 8355 14379.18 · 5.8653 draft · pending_review · missing" [ref=e3076]:
+                - cell [ref=e3077]:
+                  - generic [ref=e3078] [cursor=pointer]:
+                    - checkbox [ref=e3079]
+                    - img [ref=e3080]
+                - cell "编辑资料" [ref=e3082]:
+                  - button "编辑资料" [ref=e3083] [cursor=pointer]
+                - cell "t" [ref=e3084]
+                - cell "t" [ref=e3085]
+                - cell [ref=e3086]
+                - cell "733338 / 8355" [ref=e3087]
+                - cell "14379.18 · 5.8653" [ref=e3088]
+                - cell "draft · pending_review · missing" [ref=e3089]
+                - cell [ref=e3090]
+              - row "编辑资料 that that 719677 / 8368 14111.31 · 5.8571 draft · pending_review · missing" [ref=e3091]:
+                - cell [ref=e3092]:
+                  - generic [ref=e3093] [cursor=pointer]:
+                    - checkbox [ref=e3094]
+                    - img [ref=e3095]
+                - cell "编辑资料" [ref=e3097]:
+                  - button "编辑资料" [ref=e3098] [cursor=pointer]
+                - cell "that" [ref=e3099]
+                - cell "that" [ref=e3100]
+                - cell [ref=e3101]
+                - cell "719677 / 8368" [ref=e3102]
+                - cell "14111.31 · 5.8571" [ref=e3103]
+                - cell "draft · pending_review · missing" [ref=e3104]
+                - cell [ref=e3105]
+              - row "编辑资料 and and 682780 / 8379 13387.84 · 5.8343 draft · pending_review · missing" [ref=e3106]:
+                - cell [ref=e3107]:
+                  - generic [ref=e3108] [cursor=pointer]:
+                    - checkbox [ref=e3109]
+                    - img [ref=e3110]
+                - cell "编辑资料" [ref=e3112]:
+                  - button "编辑资料" [ref=e3113] [cursor=pointer]
+                - cell "and" [ref=e3114]
+                - cell "and" [ref=e3115]
+                - cell [ref=e3116]
+                - cell "682780 / 8379" [ref=e3117]
+                - cell "13387.84 · 5.8343" [ref=e3118]
+                - cell "draft · pending_review · missing" [ref=e3119]
+                - cell [ref=e3120]
+              - row "编辑资料 of of 590439 / 8375 11577.24 · 5.7712 draft · pending_review · missing" [ref=e3121]:
+                - cell [ref=e3122]:
+                  - generic [ref=e3123] [cursor=pointer]:
+                    - checkbox [ref=e3124]
+                    - img [ref=e3125]
+                - cell "编辑资料" [ref=e3127]:
+                  - button "编辑资料" [ref=e3128] [cursor=pointer]
+                - cell "of" [ref=e3129]
+                - cell "of" [ref=e3130]
+                - cell [ref=e3131]
+                - cell "590439 / 8375" [ref=e3132]
+                - cell "11577.24 · 5.7712" [ref=e3133]
+                - cell "draft · pending_review · missing" [ref=e3134]
+                - cell [ref=e3135]
+              - row "编辑资料 What what 501965 / 8365 9842.45 · 5.7007 draft · pending_review · missing" [ref=e3136]:
+                - cell [ref=e3137]:
+                  - generic [ref=e3138] [cursor=pointer]:
+                    - checkbox [ref=e3139]
+                    - img [ref=e3140]
+                - cell "编辑资料" [ref=e3142]:
+                  - button "编辑资料" [ref=e3143] [cursor=pointer]
+                - cell "What" [ref=e3144]
+                - cell "what" [ref=e3145]
+                - cell [ref=e3146]
+                - cell "501965 / 8365" [ref=e3147]
+                - cell "9842.45 · 5.7007" [ref=e3148]
+                - cell "draft · pending_review · missing" [ref=e3149]
+                - cell [ref=e3150]
+              - row "编辑资料 in in 498444 / 8372 9773.41 · 5.6976 draft · pending_review · missing" [ref=e3151]:
+                - cell [ref=e3152]:
+                  - generic [ref=e3153] [cursor=pointer]:
+                    - checkbox [ref=e3154]
+                    - img [ref=e3155]
+                - cell "编辑资料" [ref=e3157]:
+                  - button "编辑资料" [ref=e3158] [cursor=pointer]
+                - cell "in" [ref=e3159]
+                - cell "in" [ref=e3160]
+                - cell [ref=e3161]
+                - cell "498444 / 8372" [ref=e3162]
+                - cell "9773.41 · 5.6976" [ref=e3163]
+                - cell "draft · pending_review · missing" [ref=e3164]
+                - cell [ref=e3165]
+              - row "编辑资料 you you 2134713 / 8381 41857.12 · 6.3293 draft · pending_review · missing" [ref=e3166]:
+                - cell [ref=e3167]:
+                  - generic [ref=e3168] [cursor=pointer]:
+                    - checkbox [ref=e3169]
+                    - img [ref=e3170]
+                - cell "编辑资料" [ref=e3172]:
+                  - button "编辑资料" [ref=e3173] [cursor=pointer]
+                - cell "you" [ref=e3174]
+                - cell "you" [ref=e3175]
+                - cell [ref=e3176]
+                - cell "2134713 / 8381" [ref=e3177]
+                - cell "41857.12 · 6.3293" [ref=e3178]
+                - cell "draft · pending_review · missing" [ref=e3179]
+                - cell [ref=e3180]
+          - generic [ref=e3181]:
+            - paragraph [ref=e3182]: 第 1 页 · 当前 10 条 · 每页 10 条
+            - generic [ref=e3183]:
+              - button "上一页" [disabled]
+              - button "下一页" [ref=e3184] [cursor=pointer]
+              - generic [ref=e3185]:
+                - generic [ref=e3186]: 跳到页
+                - generic [ref=e3187]:
+                  - spinbutton "跳到页" [ref=e3188]: "1"
+                  - group:
+                    - generic: 跳到页
+              - button "跳转" [ref=e3189] [cursor=pointer]

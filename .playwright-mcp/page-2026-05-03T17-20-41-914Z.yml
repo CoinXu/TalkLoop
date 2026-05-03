@@ -1,0 +1,214 @@
+- generic [ref=e1600]:
+  - banner [ref=e1601]:
+    - generic [ref=e1602]:
+      - generic [ref=e1603]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e1604]
+        - paragraph [ref=e1605]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e1606]:
+        - button "学习端" [ref=e1607] [cursor=pointer]:
+          - img [ref=e1609]
+          - text: 学习端
+        - button "管理后台" [ref=e1611] [cursor=pointer]:
+          - img [ref=e1613]
+          - text: 管理后台
+  - main [ref=e1615]:
+    - generic [ref=e1616]:
+      - text: 管理后台
+      - generic [ref=e1617]:
+        - button "总览" [ref=e1618] [cursor=pointer]:
+          - img [ref=e1620]
+          - text: 总览
+        - button "M1 管理员" [ref=e1622] [cursor=pointer]:
+          - img [ref=e1624]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e1626] [cursor=pointer]:
+          - img [ref=e1628]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e1630] [cursor=pointer]:
+          - img [ref=e1632]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e1635] [cursor=pointer]:
+          - img [ref=e1637]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e1640] [cursor=pointer]:
+          - img [ref=e1642]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e1644] [cursor=pointer]:
+          - img [ref=e1646]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e1648] [cursor=pointer]:
+          - img [ref=e1650]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e1652] [cursor=pointer]:
+          - img [ref=e1654]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e1656] [cursor=pointer]:
+          - img [ref=e1658]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e1660] [cursor=pointer]:
+          - img [ref=e1662]
+          - text: M10 课程报告
+    - generic [ref=e1665]:
+      - generic [ref=e1668]:
+        - generic [ref=e1669]:
+          - heading "M2 词库" [level=5] [ref=e1670]
+          - paragraph [ref=e1671]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e1672]:
+          - generic [ref=e1674]: admin
+          - button "退出" [ref=e1675] [cursor=pointer]:
+            - img [ref=e1677]
+            - text: 退出
+      - generic [ref=e1679]:
+        - tablist [ref=e1685]:
+          - tab "SUBTLEXus 导入" [selected] [ref=e1686] [cursor=pointer]
+          - tab "学习词条" [ref=e1687] [cursor=pointer]
+        - generic [ref=e1690]:
+          - heading "SUBTLEXus 词频表导入" [level=6] [ref=e1691]
+          - paragraph [ref=e1692]: 先把 Excel 导入来源词表；导入结果里的批次 ID 会自动用于筛选来源词。
+          - generic [ref=e1693]:
+            - button "选择文件" [ref=e1694] [cursor=pointer]:
+              - img [ref=e1696]
+              - text: 选择文件
+            - generic [ref=e1698]:
+              - generic: 文件
+              - generic [ref=e1699]:
+                - textbox "文件" [disabled] [ref=e1700]
+                - group:
+                  - generic: 文件
+            - generic [ref=e1701]:
+              - generic: 限制行数
+              - generic [ref=e1702]:
+                - spinbutton "限制行数" [ref=e1703]
+                - group:
+                  - generic: 限制行数
+            - generic [ref=e1704]:
+              - generic [ref=e1705]: 原因
+              - generic [ref=e1706]:
+                - textbox "原因" [ref=e1707]: import SUBTLEXus frequency workbook
+                - group:
+                  - generic: 原因
+            - generic [ref=e1708] [cursor=pointer]:
+              - generic [ref=e1709]:
+                - checkbox "只预检" [checked] [ref=e1710]
+                - img [ref=e1711]
+              - generic [ref=e1713]: 只预检
+            - button "导入" [ref=e1714] [cursor=pointer]:
+              - img [ref=e1716]
+              - text: 导入
+        - generic [ref=e1719]:
+          - generic [ref=e1720]:
+            - generic [ref=e1721]:
+              - heading "SUBTLEXus 来源词" [level=6] [ref=e1722]
+              - paragraph [ref=e1723]: 对应 GET /admin/word-library/subtlexus-words，确认导入批次和频率字段后再生成学习词条。
+            - button "刷新来源词" [ref=e1724] [cursor=pointer]
+          - generic [ref=e1725]:
+            - generic [ref=e1726]:
+              - generic: importBatchId
+              - generic [ref=e1727]:
+                - textbox "importBatchId" [ref=e1728]
+                - group:
+                  - generic: importBatchId
+            - generic [ref=e1729]:
+              - generic: keyword
+              - generic [ref=e1730]:
+                - textbox "keyword" [ref=e1731]
+                - group:
+                  - generic: keyword
+            - generic [ref=e1732]:
+              - generic: minLg10Wf
+              - generic [ref=e1733]:
+                - spinbutton "minLg10Wf" [ref=e1734]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e1735]:
+              - generic [ref=e1736]: limit
+              - generic [ref=e1737]:
+                - spinbutton "limit" [ref=e1738]: "50"
+                - group:
+                  - generic: limit
+            - generic [ref=e1739]:
+              - generic [ref=e1740]: offset
+              - generic [ref=e1741]:
+                - spinbutton "offset" [ref=e1742]: "0"
+                - group:
+                  - generic: offset
+            - generic [ref=e1743]:
+              - generic [ref=e1744]: sortBy
+              - generic [ref=e1745]:
+                - combobox "sortBy createdAt" [ref=e1746] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e1747]:
+              - generic [ref=e1748]: sortOrder
+              - generic [ref=e1749]:
+                - combobox "sortOrder desc" [ref=e1750] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+          - table [ref=e1752]:
+            - rowgroup [ref=e1753]:
+              - row "词形；若大写开头更常见，原表会以大写开头。 在 5100 万词语料中出现的总次数。 出现过该词的影片数，最大 8,388。 以小写开头出现的总次数，用于区分大小写刺激材料。 以小写开头出现过该词的影片数。 每百万词频率，跨语料规模可比，论文中优先使用。 log10(FREQcount+1)，四位精度；约 1/2/3/4/5 对应 SUBTLWF 0.2/2/20/200/2000。 出现该词的影片百分比，两位精度。 log10(CDcount+1)，匹配词频时推荐；约 0.95/1.93/2.92/3.92 对应 SUBTLCD 0.1/1/10/100。 本次导入批次 ID。" [ref=e1754]:
+                - columnheader "词形；若大写开头更常见，原表会以大写开头。" [ref=e1755]: Word
+                - columnheader "在 5100 万词语料中出现的总次数。" [ref=e1756]: FREQcount
+                - columnheader "出现过该词的影片数，最大 8,388。" [ref=e1757]: CDcount
+                - columnheader "以小写开头出现的总次数，用于区分大小写刺激材料。" [ref=e1758]: FREQlow
+                - columnheader "以小写开头出现过该词的影片数。" [ref=e1759]: CDlow
+                - columnheader "每百万词频率，跨语料规模可比，论文中优先使用。" [ref=e1760]: SUBTLWF
+                - columnheader "log10(FREQcount+1)，四位精度；约 1/2/3/4/5 对应 SUBTLWF 0.2/2/20/200/2000。" [ref=e1761]: Lg10WF
+                - columnheader "出现该词的影片百分比，两位精度。" [ref=e1762]: SUBTLCD
+                - columnheader "log10(CDcount+1)，匹配词频时推荐；约 0.95/1.93/2.92/3.92 对应 SUBTLCD 0.1/1/10/100。" [ref=e1763]: Lg10CD
+                - columnheader "本次导入批次 ID。" [ref=e1764]: Batch
+            - rowgroup [ref=e1765]:
+              - row "暂无来源词。" [ref=e1766]:
+                - cell "暂无来源词。" [ref=e1767]
+          - generic [ref=e1768]:
+            - paragraph [ref=e1769]: 第 1 页 · 当前 0 条 · 每页 50 条
+            - generic [ref=e1770]:
+              - button "上一页" [disabled]
+              - button "下一页" [disabled]
+              - generic [ref=e1771]:
+                - generic [ref=e1772]: 跳到页
+                - generic [ref=e1773]:
+                  - spinbutton "跳到页" [ref=e1774]: "1"
+                  - group:
+                    - generic: 跳到页
+              - button "跳转" [ref=e1775] [cursor=pointer]
+        - generic [ref=e1777]:
+          - heading "从 SUBTLEXus 生成学习词条" [level=6] [ref=e1778]
+          - paragraph [ref=e1779]: 对应 POST /admin/word-library/words/from-subtlexus，可按最低 lg10Wf 批量生成，也可指定词表。
+          - generic [ref=e1780]:
+            - generic [ref=e1781]:
+              - generic: minLg10Wf
+              - generic [ref=e1782]:
+                - spinbutton "minLg10Wf" [ref=e1783]
+                - group:
+                  - generic: minLg10Wf
+            - generic [ref=e1784]:
+              - generic [ref=e1785]: maxRows
+              - generic [ref=e1786]:
+                - spinbutton "maxRows" [ref=e1787]: "500"
+                - group:
+                  - generic: maxRows
+            - generic [ref=e1788]:
+              - generic [ref=e1789]: reason
+              - generic [ref=e1790]:
+                - textbox "reason" [ref=e1791]: create learning words from SUBTLEXus source
+                - group:
+                  - generic: reason
+            - generic [ref=e1792] [cursor=pointer]:
+              - generic [ref=e1793]:
+                - checkbox "排除已存在词条" [checked] [ref=e1794]
+                - img [ref=e1795]
+              - generic [ref=e1797]: 排除已存在词条
+            - generic [ref=e1798]:
+              - generic: 指定 words，可换行或逗号分隔
+              - generic [ref=e1799]:
+                - textbox "指定 words，可换行或逗号分隔" [ref=e1800]
+                - group:
+                  - generic: 指定 words，可换行或逗号分隔
+            - button "生成学习词条" [ref=e1801] [cursor=pointer]:
+              - img [ref=e1803]
+              - text: 生成学习词条

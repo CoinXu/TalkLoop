@@ -1,0 +1,2 @@
+[  442974ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/features/learning/components/TodayPanel.tsx?t=1777836366505:0
+[  442975ms] [ERROR] [hmr] Failed to reload /src/features/learning/components/TodayPanel.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175

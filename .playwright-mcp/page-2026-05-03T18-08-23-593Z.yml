@@ -1,0 +1,522 @@
+- generic [ref=e1147]:
+  - banner [ref=e1148]:
+    - generic [ref=e1149]:
+      - generic [ref=e1150]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e1151]
+        - paragraph [ref=e1152]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e1153]:
+        - button "学习端" [ref=e1154] [cursor=pointer]:
+          - img [ref=e1156]
+          - text: 学习端
+        - button "管理后台" [ref=e1158] [cursor=pointer]:
+          - img [ref=e1160]
+          - text: 管理后台
+  - main [ref=e1162]:
+    - generic [ref=e1163]:
+      - text: 管理后台
+      - generic [ref=e1164]:
+        - button "总览" [ref=e1165] [cursor=pointer]:
+          - img [ref=e1167]
+          - text: 总览
+        - button "M1 管理员" [ref=e1169] [cursor=pointer]:
+          - img [ref=e1171]
+          - text: M1 管理员
+        - button "M2 词库" [ref=e1173] [cursor=pointer]:
+          - img [ref=e1175]
+          - text: M2 词库
+        - button "M3 语料课程" [ref=e1177] [cursor=pointer]:
+          - img [ref=e1179]
+          - text: M3 语料课程
+        - button "M4 自动标注" [ref=e1182] [cursor=pointer]:
+          - img [ref=e1184]
+          - text: M4 自动标注
+        - button "M5 评估" [ref=e1187] [cursor=pointer]:
+          - img [ref=e1189]
+          - text: M5 评估
+        - button "M6 用户词库" [ref=e1191] [cursor=pointer]:
+          - img [ref=e1193]
+          - text: M6 用户词库
+        - button "M7 激活练习" [ref=e1195] [cursor=pointer]:
+          - img [ref=e1197]
+          - text: M7 激活练习
+        - button "M8 每日任务" [ref=e1199] [cursor=pointer]:
+          - img [ref=e1201]
+          - text: M8 每日任务
+        - button "M9 听读跟读" [ref=e1203] [cursor=pointer]:
+          - img [ref=e1205]
+          - text: M9 听读跟读
+        - button "M10 课程报告" [ref=e1207] [cursor=pointer]:
+          - img [ref=e1209]
+          - text: M10 课程报告
+    - generic [ref=e1212]:
+      - generic [ref=e1215]:
+        - generic [ref=e1216]:
+          - heading "M2 词库" [level=5] [ref=e1217]
+          - paragraph [ref=e1218]: SUBTLEXus 词条、难度、发布
+        - generic [ref=e1219]:
+          - generic [ref=e1221]: admin
+          - button "退出" [ref=e1222] [cursor=pointer]:
+            - img [ref=e1224]
+            - text: 退出
+      - generic [ref=e1226]:
+        - tablist [ref=e1232]:
+          - tab "SUBTLEXus 导入" [ref=e1233] [cursor=pointer]
+          - tab "学习词条" [selected] [ref=e1234] [cursor=pointer]
+        - generic [ref=e1237]:
+          - generic [ref=e1238]:
+            - generic [ref=e1239]:
+              - heading "创建词条" [level=6] [ref=e1240]
+              - paragraph [ref=e1241]: 覆盖 /admin/word-library/words 的主要字段，发布前需补齐释义、音频、频率、语境多样性和难度。
+            - generic [ref=e1242]:
+              - button "清空" [ref=e1243] [cursor=pointer]
+              - button "创建词条" [disabled]:
+                - generic:
+                  - img
+                - text: 创建词条
+          - generic [ref=e1244]:
+            - generic [ref=e1245]:
+              - generic:
+                - text: word
+                - generic: "*"
+              - generic [ref=e1246]:
+                - textbox "word" [ref=e1247]
+                - group:
+                  - generic: word *
+            - generic [ref=e1248]:
+              - generic: lemma
+              - generic [ref=e1249]:
+                - textbox "lemma" [ref=e1250]
+                - group:
+                  - generic: lemma
+            - generic [ref=e1251]:
+              - generic: phonetic
+              - generic [ref=e1252]:
+                - textbox "phonetic" [ref=e1253]
+                - group:
+                  - generic: phonetic
+            - generic [ref=e1254]:
+              - generic: partOfSpeech
+              - generic [ref=e1255]:
+                - textbox "partOfSpeech" [ref=e1256]
+                - group:
+                  - generic: partOfSpeech
+            - generic [ref=e1257]:
+              - generic: meaningCn
+              - generic [ref=e1258]:
+                - textbox "meaningCn" [ref=e1259]
+                - group:
+                  - generic: meaningCn
+            - generic [ref=e1260]:
+              - generic: meaningEn
+              - generic [ref=e1261]:
+                - textbox "meaningEn" [ref=e1262]
+                - group:
+                  - generic: meaningEn
+            - generic [ref=e1263]:
+              - generic: audioUrl
+              - generic [ref=e1264]:
+                - textbox "audioUrl" [ref=e1265]
+                - group:
+                  - generic: audioUrl
+            - generic [ref=e1266]:
+              - generic [ref=e1267]: audioStatus
+              - generic [ref=e1268]:
+                - combobox "audioStatus missing" [ref=e1269] [cursor=pointer]: missing
+                - textbox: missing
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e1270]:
+              - generic [ref=e1271]: publishStatus
+              - generic [ref=e1272]:
+                - combobox "publishStatus draft" [ref=e1273] [cursor=pointer]: draft
+                - textbox: draft
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e1274]:
+              - generic [ref=e1275]: reviewStatus
+              - generic [ref=e1276]:
+                - combobox "reviewStatus pending_review" [ref=e1277] [cursor=pointer]: pending_review
+                - textbox: pending_review
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e1278]:
+              - generic: difficultyLevel
+              - generic [ref=e1279]:
+                - spinbutton "difficultyLevel" [ref=e1280]
+                - group:
+                  - generic: difficultyLevel
+            - generic [ref=e1281]:
+              - generic: frequencyCount
+              - generic [ref=e1282]:
+                - spinbutton "frequencyCount" [ref=e1283]
+                - group:
+                  - generic: frequencyCount
+            - generic [ref=e1284]:
+              - generic: cdCount
+              - generic [ref=e1285]:
+                - spinbutton "cdCount" [ref=e1286]
+                - group:
+                  - generic: cdCount
+            - generic [ref=e1287]:
+              - generic: frequencyLow
+              - generic [ref=e1288]:
+                - spinbutton "frequencyLow" [ref=e1289]
+                - group:
+                  - generic: frequencyLow
+            - generic [ref=e1290]:
+              - generic: cdLow
+              - generic [ref=e1291]:
+                - spinbutton "cdLow" [ref=e1292]
+                - group:
+                  - generic: cdLow
+            - generic [ref=e1293]:
+              - generic: subtlwf
+              - generic [ref=e1294]:
+                - textbox "subtlwf" [ref=e1295]
+                - group:
+                  - generic: subtlwf
+            - generic [ref=e1296]:
+              - generic: lg10wf
+              - generic [ref=e1297]:
+                - textbox "lg10wf" [ref=e1298]
+                - group:
+                  - generic: lg10wf
+            - generic [ref=e1299]:
+              - generic: subtlcd
+              - generic [ref=e1300]:
+                - textbox "subtlcd" [ref=e1301]
+                - group:
+                  - generic: subtlcd
+            - generic [ref=e1302]:
+              - generic: lg10cd
+              - generic [ref=e1303]:
+                - textbox "lg10cd" [ref=e1304]
+                - group:
+                  - generic: lg10cd
+            - generic [ref=e1305]:
+              - generic: levelTags，逗号分隔
+              - generic [ref=e1306]:
+                - textbox "levelTags，逗号分隔" [ref=e1307]
+                - group:
+                  - generic: levelTags，逗号分隔
+            - generic [ref=e1308]:
+              - generic: sceneTags，逗号分隔
+              - generic [ref=e1309]:
+                - textbox "sceneTags，逗号分隔" [ref=e1310]
+                - group:
+                  - generic: sceneTags，逗号分隔
+            - generic [ref=e1311]:
+              - generic: commonCollocations，逗号分隔
+              - generic [ref=e1312]:
+                - textbox "commonCollocations，逗号分隔" [ref=e1313]
+                - group:
+                  - generic: commonCollocations，逗号分隔
+            - generic [ref=e1314]:
+              - generic: hearingTrap
+              - generic [ref=e1315]:
+                - textbox "hearingTrap" [ref=e1316]
+                - group:
+                  - generic: hearingTrap
+            - generic [ref=e1317]:
+              - generic: distractors.pronunciation
+              - generic [ref=e1318]:
+                - textbox "distractors.pronunciation" [ref=e1319]
+                - group:
+                  - generic: distractors.pronunciation
+            - generic [ref=e1320]:
+              - generic: distractors.meaning
+              - generic [ref=e1321]:
+                - textbox "distractors.meaning" [ref=e1322]
+                - group:
+                  - generic: distractors.meaning
+            - generic [ref=e1323]:
+              - generic: distractors.difficulty
+              - generic [ref=e1324]:
+                - textbox "distractors.difficulty" [ref=e1325]
+                - group:
+                  - generic: distractors.difficulty
+            - generic [ref=e1326]:
+              - generic: exclusionReason
+              - generic [ref=e1327]:
+                - textbox "exclusionReason" [ref=e1328]
+                - group:
+                  - generic: exclusionReason
+            - generic [ref=e1329]:
+              - generic [ref=e1330]: reason
+              - generic [ref=e1331]:
+                - textbox "reason" [ref=e1332]: word library admin update
+                - group:
+                  - generic: reason
+            - generic [ref=e1333] [cursor=pointer]:
+              - generic [ref=e1334]:
+                - checkbox "isExcluded" [ref=e1335]
+                - img [ref=e1336]
+              - generic [ref=e1338]: isExcluded
+        - generic [ref=e1340]:
+          - generic [ref=e1341]:
+            - generic [ref=e1342]:
+              - heading "学习词条列表" [level=6] [ref=e1343]
+              - paragraph [ref=e1344]: 对应 GET /admin/word-library/words，覆盖状态、音频、释义、频率、标签和排除字段。
+            - button "刷新词条" [ref=e1345] [cursor=pointer]
+          - generic [ref=e1346]:
+            - generic [ref=e1347]:
+              - generic: keyword
+              - generic [ref=e1348]:
+                - textbox "keyword" [ref=e1349]
+                - group:
+                  - generic: keyword
+            - generic [ref=e1350]:
+              - generic: publishStatus
+              - generic [ref=e1351]:
+                - combobox "publishStatus" [ref=e1352] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: publishStatus
+            - generic [ref=e1353]:
+              - generic: reviewStatus
+              - generic [ref=e1354]:
+                - combobox "reviewStatus" [ref=e1355] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: reviewStatus
+            - generic [ref=e1356]:
+              - generic: audioStatus
+              - generic [ref=e1357]:
+                - combobox "audioStatus" [ref=e1358] [cursor=pointer]
+                - textbox
+                - img
+                - group:
+                  - generic: audioStatus
+            - generic [ref=e1359]:
+              - generic: minFrequencyCount
+              - generic [ref=e1360]:
+                - spinbutton "minFrequencyCount" [ref=e1361]
+                - group:
+                  - generic: minFrequencyCount
+            - generic [ref=e1362]:
+              - generic: minLg10wf
+              - generic [ref=e1363]:
+                - spinbutton "minLg10wf" [ref=e1364]
+                - group:
+                  - generic: minLg10wf
+            - generic [ref=e1365]:
+              - generic [ref=e1366]: limit
+              - generic [ref=e1367]:
+                - spinbutton "limit" [ref=e1368]: "10"
+                - group:
+                  - generic: limit
+            - generic [ref=e1369]:
+              - generic [ref=e1370]: offset
+              - generic [ref=e1371]:
+                - spinbutton "offset" [ref=e1372]: "0"
+                - group:
+                  - generic: offset
+            - generic [ref=e1373]:
+              - generic [ref=e1374]: sortBy
+              - generic [ref=e1375]:
+                - combobox "sortBy createdAt" [ref=e1376] [cursor=pointer]: createdAt
+                - textbox: createdAt
+                - img
+                - group:
+                  - generic: sortBy
+            - generic [ref=e1377]:
+              - generic [ref=e1378]: sortOrder
+              - generic [ref=e1379]:
+                - combobox "sortOrder desc" [ref=e1380] [cursor=pointer]: desc
+                - textbox: desc
+                - img
+                - group:
+                  - generic: sortOrder
+            - generic [ref=e1381] [cursor=pointer]:
+              - generic [ref=e1382]:
+                - checkbox "有释义" [ref=e1383]
+                - img [ref=e1384]
+              - generic [ref=e1386]: 有释义
+            - generic [ref=e1387] [cursor=pointer]:
+              - generic [ref=e1388]:
+                - checkbox "有音频" [ref=e1389]
+                - img [ref=e1390]
+              - generic [ref=e1392]: 有音频
+            - generic [ref=e1393] [cursor=pointer]:
+              - generic [ref=e1394]:
+                - checkbox "仅排除词" [ref=e1395]
+                - img [ref=e1396]
+              - generic [ref=e1398]: 仅排除词
+          - generic [ref=e1399]:
+            - generic [ref=e1567]:
+              - generic [ref=e1569]: 已选 0 条
+              - generic [ref=e1570]:
+                - text: 审核
+                - group [ref=e1571]:
+                  - button "待审" [ref=e1572] [cursor=pointer]
+                  - button "通过" [ref=e1573] [cursor=pointer]
+                  - button "拒绝" [ref=e1574] [cursor=pointer]
+              - generic [ref=e1575]:
+                - text: 音频
+                - group [ref=e1576]:
+                  - button "缺失" [ref=e1577] [cursor=pointer]
+                  - button "就绪" [ref=e1578] [cursor=pointer]
+                  - button "失败" [ref=e1579] [cursor=pointer]
+              - generic [ref=e1580]:
+                - text: 发布
+                - group [ref=e1581]:
+                  - button "草稿" [ref=e1582] [cursor=pointer]
+                  - button "发布" [ref=e1583] [cursor=pointer]
+                  - button "归档" [ref=e1584] [cursor=pointer]
+              - button "批量应用" [disabled]
+              - button "清除选择" [disabled]
+            - alert [ref=e1585]:
+              - img [ref=e1587]
+              - generic [ref=e1589]: 审核决定词条内容是否可信；音频表示是否可用于听力练习；发布决定学习端和激活计划是否能使用该词。未选中的状态不会被修改。
+          - table [ref=e1412]:
+            - rowgroup [ref=e1413]:
+              - row "词条展示词形；大小写保留来源词表或人工录入结果。 归一化词元，用于匹配、去重和学习记录关联。 释义 FREQcount 为语料出现次数；CDcount 为出现过该词的影片数。 SUBTLWF 为每百万词频率；Lg10WF 为 log10(FREQcount+1)。 状态 标签/排除" [ref=e1414]:
+                - columnheader [ref=e1415]:
+                  - generic [ref=e1416] [cursor=pointer]:
+                    - checkbox [ref=e1417]
+                    - img [ref=e1418]
+                - columnheader "词条展示词形；大小写保留来源词表或人工录入结果。" [ref=e1420]: Word
+                - columnheader "归一化词元，用于匹配、去重和学习记录关联。" [ref=e1421]: Lemma
+                - columnheader "释义" [ref=e1422]
+                - columnheader "FREQcount 为语料出现次数；CDcount 为出现过该词的影片数。" [ref=e1423]: FREQ/CD
+                - columnheader "SUBTLWF 为每百万词频率；Lg10WF 为 log10(FREQcount+1)。" [ref=e1424]: SUBTLEX
+                - columnheader "状态" [ref=e1425]
+                - columnheader "标签/排除" [ref=e1426]
+            - rowgroup [ref=e1427]:
+              - row "I i 2038529 / 8372 39971.16 · 6.3093 draft · pending_review · missing" [ref=e1428]:
+                - cell [ref=e1429]:
+                  - generic [ref=e1430] [cursor=pointer]:
+                    - checkbox [ref=e1431]
+                    - img [ref=e1432]
+                - cell "I" [ref=e1434]
+                - cell "i" [ref=e1435]
+                - cell [ref=e1436]
+                - cell "2038529 / 8372" [ref=e1437]
+                - cell "39971.16 · 6.3093" [ref=e1438]
+                - cell "draft · pending_review · missing" [ref=e1439]
+                - cell [ref=e1440]
+              - row "the the 1501908 / 8388 29449.18 · 6.1766 draft · pending_review · missing" [ref=e1441]:
+                - cell [ref=e1442]:
+                  - generic [ref=e1443] [cursor=pointer]:
+                    - checkbox [ref=e1444]
+                    - img [ref=e1445]
+                - cell "the" [ref=e1447]
+                - cell "the" [ref=e1448]
+                - cell [ref=e1449]
+                - cell "1501908 / 8388" [ref=e1450]
+                - cell "29449.18 · 6.1766" [ref=e1451]
+                - cell "draft · pending_review · missing" [ref=e1452]
+                - cell [ref=e1453]
+              - row "to to 1156570 / 8383 22677.84 · 6.0632 draft · pending_review · missing" [ref=e1454]:
+                - cell [ref=e1455]:
+                  - generic [ref=e1456] [cursor=pointer]:
+                    - checkbox [ref=e1457]
+                    - img [ref=e1458]
+                - cell "to" [ref=e1460]
+                - cell "to" [ref=e1461]
+                - cell [ref=e1462]
+                - cell "1156570 / 8383" [ref=e1463]
+                - cell "22677.84 · 6.0632" [ref=e1464]
+                - cell "draft · pending_review · missing" [ref=e1465]
+                - cell [ref=e1466]
+              - row "s s 1057301 / 8377 20731.39 · 6.0242 draft · pending_review · missing" [ref=e1467]:
+                - cell [ref=e1468]:
+                  - generic [ref=e1469] [cursor=pointer]:
+                    - checkbox [ref=e1470]
+                    - img [ref=e1471]
+                - cell "s" [ref=e1473]
+                - cell "s" [ref=e1474]
+                - cell [ref=e1475]
+                - cell "1057301 / 8377" [ref=e1476]
+                - cell "20731.39 · 6.0242" [ref=e1477]
+                - cell "draft · pending_review · missing" [ref=e1478]
+                - cell [ref=e1479]
+              - row "a a 1041179 / 8382 20415.27 · 6.0175 draft · pending_review · missing" [ref=e1480]:
+                - cell [ref=e1481]:
+                  - generic [ref=e1482] [cursor=pointer]:
+                    - checkbox [ref=e1483]
+                    - img [ref=e1484]
+                - cell "a" [ref=e1486]
+                - cell "a" [ref=e1487]
+                - cell [ref=e1488]
+                - cell "1041179 / 8382" [ref=e1489]
+                - cell "20415.27 · 6.0175" [ref=e1490]
+                - cell "draft · pending_review · missing" [ref=e1491]
+                - cell [ref=e1492]
+              - row "it it 963712 / 8377 18896.31 · 5.9839 draft · pending_review · missing" [ref=e1493]:
+                - cell [ref=e1494]:
+                  - generic [ref=e1495] [cursor=pointer]:
+                    - checkbox [ref=e1496]
+                    - img [ref=e1497]
+                - cell "it" [ref=e1499]
+                - cell "it" [ref=e1500]
+                - cell [ref=e1501]
+                - cell "963712 / 8377" [ref=e1502]
+                - cell "18896.31 · 5.9839" [ref=e1503]
+                - cell "draft · pending_review · missing" [ref=e1504]
+                - cell [ref=e1505]
+              - row "t t 733338 / 8355 14379.18 · 5.8653 draft · pending_review · missing" [ref=e1506]:
+                - cell [ref=e1507]:
+                  - generic [ref=e1508] [cursor=pointer]:
+                    - checkbox [ref=e1509]
+                    - img [ref=e1510]
+                - cell "t" [ref=e1512]
+                - cell "t" [ref=e1513]
+                - cell [ref=e1514]
+                - cell "733338 / 8355" [ref=e1515]
+                - cell "14379.18 · 5.8653" [ref=e1516]
+                - cell "draft · pending_review · missing" [ref=e1517]
+                - cell [ref=e1518]
+              - row "that that 719677 / 8368 14111.31 · 5.8571 draft · pending_review · missing" [ref=e1519]:
+                - cell [ref=e1520]:
+                  - generic [ref=e1521] [cursor=pointer]:
+                    - checkbox [ref=e1522]
+                    - img [ref=e1523]
+                - cell "that" [ref=e1525]
+                - cell "that" [ref=e1526]
+                - cell [ref=e1527]
+                - cell "719677 / 8368" [ref=e1528]
+                - cell "14111.31 · 5.8571" [ref=e1529]
+                - cell "draft · pending_review · missing" [ref=e1530]
+                - cell [ref=e1531]
+              - row "and and 682780 / 8379 13387.84 · 5.8343 draft · pending_review · missing" [ref=e1532]:
+                - cell [ref=e1533]:
+                  - generic [ref=e1534] [cursor=pointer]:
+                    - checkbox [ref=e1535]
+                    - img [ref=e1536]
+                - cell "and" [ref=e1538]
+                - cell "and" [ref=e1539]
+                - cell [ref=e1540]
+                - cell "682780 / 8379" [ref=e1541]
+                - cell "13387.84 · 5.8343" [ref=e1542]
+                - cell "draft · pending_review · missing" [ref=e1543]
+                - cell [ref=e1544]
+              - row "you you 2134713 / 8381 41857.12 · 6.3293 draft · pending_review · missing" [ref=e1545]:
+                - cell [ref=e1546]:
+                  - generic [ref=e1547] [cursor=pointer]:
+                    - checkbox [ref=e1548]
+                    - img [ref=e1549]
+                - cell "you" [ref=e1551]
+                - cell "you" [ref=e1552]
+                - cell [ref=e1553]
+                - cell "2134713 / 8381" [ref=e1554]
+                - cell "41857.12 · 6.3293" [ref=e1555]
+                - cell "draft · pending_review · missing" [ref=e1556]
+                - cell [ref=e1557]
+          - generic [ref=e1558]:
+            - paragraph [ref=e1559]: 第 1 页 · 当前 10 条 · 每页 10 条
+            - generic [ref=e1560]:
+              - button "上一页" [disabled]
+              - button "下一页" [ref=e1561] [cursor=pointer]
+              - generic [ref=e1562]:
+                - generic [ref=e1563]: 跳到页
+                - generic [ref=e1564]:
+                  - spinbutton "跳到页" [ref=e1565]: "1"
+                  - group:
+                    - generic: 跳到页
+              - button "跳转" [ref=e1566] [cursor=pointer]

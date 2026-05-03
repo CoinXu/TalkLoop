@@ -1,0 +1,58 @@
+- generic [ref=e1608]:
+  - banner [ref=e1609]:
+    - generic [ref=e1610]:
+      - generic [ref=e1611]:
+        - heading "Learning Activation v1.0" [level=1] [ref=e3450]
+        - paragraph [ref=e1613]: 词库、课程、评估、激活练习、听读和报告
+      - generic [ref=e1614]:
+        - button "学习端" [ref=e3451] [cursor=pointer]:
+          - img [ref=e1617]
+          - text: 学习端
+        - button "管理后台" [ref=e3452] [cursor=pointer]:
+          - img [ref=e1621]
+          - text: 管理后台
+  - main [ref=e3742]:
+    - tablist [ref=e3746]:
+      - tab "今日任务" [selected] [ref=e3747] [cursor=pointer]:
+        - img [ref=e3748]
+        - text: 今日任务
+      - tab "水平评估" [ref=e3750] [cursor=pointer]:
+        - img [ref=e3751]
+        - text: 水平评估
+      - tab "我的词库" [ref=e3753] [cursor=pointer]:
+        - img [ref=e3754]
+        - text: 我的词库
+      - tab "课程" [ref=e3756] [cursor=pointer]:
+        - img [ref=e3757]
+        - text: 课程
+      - tab "听读" [ref=e3760] [cursor=pointer]:
+        - img [ref=e3761]
+        - text: 听读
+      - tab "报告" [ref=e3763] [cursor=pointer]:
+        - img [ref=e3764]
+        - text: 报告
+      - tab "个人" [ref=e3766] [cursor=pointer]:
+        - img [ref=e3767]
+        - text: 个人
+    - generic [ref=e3772]:
+      - generic [ref=e3774]:
+        - heading "今日激活计划" [level=5] [ref=e3775]
+        - paragraph [ref=e3776]: 系统会基于评估、红黄绿词库和课程内容生成每日练习。
+        - generic [ref=e3777]:
+          - generic [ref=e3779]: 红 1
+          - generic [ref=e3781]: 黄 0
+          - generic [ref=e3783]: 绿 0
+        - generic [ref=e3784]:
+          - paragraph [ref=e3785]: 当前身份：local-demo-user
+          - button "加载今日计划" [ref=e3793] [cursor=pointer]:
+            - img [ref=e3795]
+            - text: 加载今日计划
+          - button "重新创建身份" [ref=e3797] [cursor=pointer]
+      - generic [ref=e3787]:
+        - heading "任务清单" [level=6] [ref=e3788]
+        - alert [ref=e3798]:
+          - img [ref=e3800]
+          - generic [ref=e3802]: 当前身份已有 1 个激活词，但今天的任务是在词库为空时生成的空计划。后端会复用当天任务，不会自动重建；请重新创建身份后再做水平评估，或等后端提供重建今日任务接口。
+        - list [ref=e3803]:
+          - listitem [ref=e3804]:
+            - generic [ref=e3806]: 今日任务为空，请重新加载今日计划。

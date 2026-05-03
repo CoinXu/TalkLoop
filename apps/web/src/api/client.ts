@@ -1,3 +1,4 @@
+import { loadAdminSession } from "../session/adminSessionStore";
 import { loadSession } from "../session/sessionStore";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:3000";
@@ -17,26 +18,46 @@ export class ApiError extends Error {
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
+  requireAdmin?: boolean;
+  requireSession?: boolean;
+};
+
+type FormRequestOptions = Omit<RequestInit, "body"> & {
+  body: FormData;
+  requireAdmin?: boolean;
   requireSession?: boolean;
 };
 
 export async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const session = loadSession();
-  const { body, requireSession, ...requestOptions } = options;
+  return request<T>(path, options);
+}
 
-  if (requireSession && !session) {
+export async function requestFormData<T>(path: string, options: FormRequestOptions): Promise<T> {
+  return request<T>(path, options);
+}
+
+async function request<T>(path: string, options: RequestOptions | FormRequestOptions): Promise<T> {
+  const userSession = loadSession();
+  const adminSession = loadAdminSession();
+  const { body, requireAdmin, requireSession, ...requestOptions } = options;
+
+  if (requireSession && !userSession) {
+    throw new ApiError("authRequired", 401, "authRequired");
+  }
+  if (requireAdmin && !adminSession) {
     throw new ApiError("authRequired", 401, "authRequired");
   }
 
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
-
-  if (body !== undefined) {
+  if (body !== undefined && !(body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-
-  if (session) {
-    headers.set("x-session-id", session.sessionId);
+  if (userSession) {
+    headers.set("x-session-id", userSession.sessionId);
+  }
+  if (adminSession) {
+    headers.set("x-admin-session-id", adminSession.adminSessionId);
   }
 
   const init: RequestInit = {
@@ -44,11 +65,10 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
     headers,
   };
   if (body !== undefined) {
-    init.body = JSON.stringify(body);
+    init.body = body instanceof FormData ? body : JSON.stringify(body);
   }
 
   const response = await fetch(`${apiBaseUrl}${path}`, init);
-
   const payload = await readPayload(response);
   if (!response.ok) {
     const message = getErrorMessage(payload) ?? "requestFailed";
