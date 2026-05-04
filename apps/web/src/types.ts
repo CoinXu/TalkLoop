@@ -111,6 +111,24 @@ export interface SubtlexusWord {
   updatedAt: string;
 }
 
+export interface WordMeta {
+  createdAt: string;
+  derivedFields: JsonRecord;
+  importBatchId: string | null;
+  licenseName: string | null;
+  licenseUrl: string | null;
+  meanings: JsonRecord[];
+  normalizedWord: string;
+  phonetics: JsonRecord[];
+  rawPayload: JsonRecord | JsonRecord[];
+  source: string;
+  sourceUrl: string | null;
+  updatedAt: string;
+  word: string;
+  wordId: string | null;
+  wordMetaId: string;
+}
+
 export interface SubtlexusImportResult {
   created: number;
   dryRun: boolean;

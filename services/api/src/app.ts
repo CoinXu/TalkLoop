@@ -5,13 +5,16 @@ import { AppConfig } from "./config/AppConfig.js";
 import { Database } from "./infrastructure/database/Database.js";
 import { SnowflakeIdGenerator } from "./infrastructure/SnowflakeIdGenerator.js";
 import { AdminRepository } from "./repositories/AdminRepository.js";
+import { ContentAdminRepository } from "./repositories/ContentAdminRepository.js";
 import { LearningActivationRepository } from "./repositories/LearningActivationRepository.js";
 import { SubtlexusRepository } from "./repositories/SubtlexusRepository.js";
 import { WordLibraryRepository } from "./repositories/WordLibraryRepository.js";
 import { AdminService } from "./services/AdminService.js";
+import { ContentAdminService } from "./services/ContentAdminService.js";
 import { LearningActivationService } from "./services/LearningActivationService.js";
 import { WordLibraryService } from "./services/WordLibraryService.js";
 import { AdminRoutes } from "./http/routes/AdminRoutes.js";
+import { ContentAdminRoutes } from "./http/routes/ContentAdminRoutes.js";
 import { LearningActivationRoutes } from "./http/routes/LearningActivationRoutes.js";
 import { WordLibraryRoutes } from "./http/routes/WordLibraryRoutes.js";
 import { StaticAssetRoutes } from "./http/routes/StaticAssetRoutes.js";
@@ -42,14 +45,17 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   const idGenerator = new SnowflakeIdGenerator();
   const adminRepository = new AdminRepository(dependencies.database.db, idGenerator);
+  const contentAdminRepository = new ContentAdminRepository(dependencies.database.db, idGenerator);
   const learningActivationRepository = new LearningActivationRepository(dependencies.database.db, idGenerator);
   const subtlexusRepository = new SubtlexusRepository(dependencies.database.db, idGenerator);
   const wordLibraryRepository = new WordLibraryRepository(dependencies.database.db, idGenerator);
   const adminService = new AdminService(adminRepository);
+  const contentAdminService = new ContentAdminService(contentAdminRepository, adminService);
   const learningActivationService = new LearningActivationService(learningActivationRepository, adminService);
   const wordLibraryService = new WordLibraryService(wordLibraryRepository, subtlexusRepository, adminService);
 
   await new AdminRoutes(adminService).register(app);
+  await new ContentAdminRoutes(contentAdminService, adminService).register(app);
   await new WordLibraryRoutes(wordLibraryService, adminService).register(app);
   await new LearningActivationRoutes(learningActivationService, adminService).register(app);
   await new StaticAssetRoutes().register(app);

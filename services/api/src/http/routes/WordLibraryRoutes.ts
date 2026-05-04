@@ -8,12 +8,18 @@ import {
   createWordEntryBodySchema,
   createWordsFromSubtlexusBodySchema,
   createWordsFromSubtlexusResponseSchema,
+  applyWordMetaBodySchema,
   publicWordListQuerySchema,
+  publicWordMetaListResponseSchema,
+  importDictionaryApiBodySchema,
+  importDictionaryApiResponseSchema,
   subtlexusWordListQuerySchema,
   subtlexusWordListResponseSchema,
   adminWordListResponseSchema,
   adminWordResponseSchema,
   publicWordListResponseSchema,
+  wordMetaListQuerySchema,
+  wordMetaListResponseSchema,
   wordEntryBodySchema,
   wordFrequencyImportResponseSchema,
   wordFrequencyImportQuerySchema,
@@ -32,11 +38,17 @@ export class WordLibraryRoutes {
   @Operation("List published word entries")
   listPublished(): void {}
 
+  @Operation("List public word metadata")
+  listWordMeta(): void {}
+
   @Operation("Admin list word entries")
   adminList(): void {}
 
   @Operation("Admin list SUBTLEXus source words")
   adminListSubtlexusWords(): void {}
+
+  @Operation("Admin list word metadata")
+  adminListWordMeta(): void {}
 
   @Operation("Admin create word entry")
   adminCreate(): void {}
@@ -53,6 +65,12 @@ export class WordLibraryRoutes {
   @Operation("Admin create learning word entries from SUBTLEXus source")
   adminCreateWordsFromSubtlexus(): void {}
 
+  @Operation("Admin import DictionaryAPI word metadata")
+  adminImportDictionaryApi(): void {}
+
+  @Operation("Admin apply DictionaryAPI metadata to word entry")
+  adminApplyDictionaryApiMeta(): void {}
+
   async register(app: FastifyInstance): Promise<void> {
     app.get(
       "/word-library/words",
@@ -60,6 +78,20 @@ export class WordLibraryRoutes {
       async (request) => {
         const query = publicWordListQuerySchema.parse(request.query);
         return { items: await this.wordLibraryService.listPublished(query.limit, query.offset, query.difficultyLevel) };
+      },
+    );
+
+    app.get(
+      "/word-library/word-meta",
+      { schema: RouteDocs.schema(this, "listWordMeta", { query: wordMetaListQuerySchema, response: { 200: publicWordMetaListResponseSchema } }) },
+      async (request) => {
+        const query = wordMetaListQuerySchema.parse(request.query);
+        return {
+          items: await this.wordLibraryService.listWordMeta({
+            ...query,
+            wordId: query.wordId ? EntityIdCodec.parse(query.wordId) : undefined,
+          }),
+        };
       },
     );
 
@@ -80,6 +112,21 @@ export class WordLibraryRoutes {
         const admin = await this.currentAdmin(request);
         const query = subtlexusWordListQuerySchema.parse(request.query);
         return { items: await this.wordLibraryService.adminListSubtlexusWords(admin, query) };
+      },
+    );
+
+    app.get(
+      "/admin/word-library/word-meta",
+      { schema: RouteDocs.schema(this, "adminListWordMeta", { query: wordMetaListQuerySchema, response: { 200: wordMetaListResponseSchema } }) },
+      async (request) => {
+        const admin = await this.currentAdmin(request);
+        const query = wordMetaListQuerySchema.parse(request.query);
+        return {
+          items: await this.wordLibraryService.adminListWordMeta(admin, {
+            ...query,
+            wordId: query.wordId ? EntityIdCodec.parse(query.wordId) : undefined,
+          }),
+        };
       },
     );
 
@@ -172,6 +219,27 @@ export class WordLibraryRoutes {
         const admin = await this.currentAdmin(request);
         const body = createWordsFromSubtlexusBodySchema.parse(request.body);
         return this.wordLibraryService.adminCreateWordsFromSubtlexus(admin, body);
+      },
+    );
+
+    app.post(
+      "/admin/word-library/imports/dictionaryapi",
+      { schema: RouteDocs.schema(this, "adminImportDictionaryApi", { body: importDictionaryApiBodySchema, response: { 200: importDictionaryApiResponseSchema } }) },
+      async (request) => {
+        const admin = await this.currentAdmin(request);
+        const body = importDictionaryApiBodySchema.parse(request.body);
+        return this.wordLibraryService.adminImportDictionaryApiMeta(admin, body);
+      },
+    );
+
+    app.post(
+      "/admin/word-library/word-meta/:id/apply",
+      { schema: RouteDocs.schema(this, "adminApplyDictionaryApiMeta", { params: wordParamsSchema, body: applyWordMetaBodySchema, response: { 200: adminWordResponseSchema } }) },
+      async (request) => {
+        const admin = await this.currentAdmin(request);
+        const { id } = wordParamsSchema.parse(request.params);
+        const body = applyWordMetaBodySchema.parse(request.body);
+        return this.wordLibraryService.adminApplyDictionaryMeta(admin, EntityIdCodec.parse(id), body);
       },
     );
   }

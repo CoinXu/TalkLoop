@@ -10,7 +10,7 @@ export const listQuerySchema = z.object({
   keyword: z.string().min(1).optional(),
   limit: z.coerce.number().int().positive().max(100).default(50),
   offset: z.coerce.number().int().nonnegative().default(0),
-  publishStatus: z.enum(["draft", "published", "archived"]).optional(),
+  publishStatus: z.enum(["draft", "published", "unpublished", "archived"]).optional(),
   reviewStatus: z.enum(["pending_review", "approved", "rejected"]).optional(),
   status: z.string().min(1).optional(),
 });
@@ -21,7 +21,7 @@ export const courseListQuerySchema = listQuerySchema.extend({
 });
 
 export const sentenceListQuerySchema = listQuerySchema.extend({
-  audioStatus: z.enum(["missing", "ready", "failed"]).optional(),
+  audioStatus: z.enum(["missing", "ready", "failed", "default", "unreachable"]).optional(),
   courseId: snowflakeIdSchema.optional(),
   difficultyLevel: z.coerce.number().int().min(1).max(4).optional(),
   hasAudio: z.coerce.boolean().optional(),
@@ -79,7 +79,7 @@ export const dateQuerySchema = z.object({ taskDate: z.string().min(8).optional()
 export const sceneRequestSchema = z.object({
   description: z.string().nullable().optional(),
   name: z.string().min(1).optional(),
-  publishStatus: z.enum(["draft", "published", "archived"]).optional(),
+  publishStatus: z.enum(["draft", "published", "unpublished", "archived"]).optional(),
   reason: z.string().min(1).optional(),
   sortOrder: z.number().int().optional(),
 });
@@ -91,6 +91,7 @@ export const sceneResponseSchema = z.object({
   name: z.string(),
   publishStatus: z.string(),
   sceneId: z.string(),
+  slug: z.string().optional(),
   sortOrder: z.number(),
   updatedAt: z.string(),
 });
@@ -99,7 +100,9 @@ export const sceneListResponseSchema = z.object({ items: z.array(sceneResponseSc
 export const courseRequestSchema = z.object({
   description: z.string().nullable().optional(),
   level: z.number().int().min(1).max(4).optional(),
-  publishStatus: z.enum(["draft", "published", "archived"]).optional(),
+  maxSentenceCount: z.number().int().positive().optional(),
+  minSentenceCount: z.number().int().positive().optional(),
+  publishStatus: z.enum(["draft", "published", "unpublished", "archived"]).optional(),
   reason: z.string().min(1).optional(),
   sceneId: snowflakeIdSchema.optional(),
   sortOrder: z.number().int().optional(),
@@ -125,6 +128,10 @@ export const courseResponseSchema = z.object({
   level: z.number(),
   publishStatus: z.string(),
   sceneId: z.string(),
+  slug: z.string().optional(),
+  maxSentenceCount: z.number().optional(),
+  minSentenceCount: z.number().optional(),
+  needsRevalidation: z.boolean().optional(),
   sortOrder: z.number(),
   title: z.string(),
   unlockPolicy: jsonObjectSchema,
@@ -137,13 +144,14 @@ export const courseResponseSchema = z.object({
 export const courseListResponseSchema = z.object({ items: z.array(courseResponseSchema) });
 
 export const sentenceRequestSchema = z.object({
-  audioStatus: z.enum(["missing", "ready", "failed"]).optional(),
+  audioStatus: z.enum(["missing", "ready", "failed", "default", "unreachable"]).optional(),
   bonusWords: z.array(z.string()).optional(),
   courseId: snowflakeIdSchema.nullable().optional(),
   difficultyLevel: z.number().int().min(1).max(4).optional(),
   normalAudioUrl: z.string().nullable().optional(),
   phraseChunks: z.array(z.string()).optional(),
-  publishStatus: z.enum(["draft", "published", "archived"]).optional(),
+  importBatchId: z.string().nullable().optional(),
+  publishStatus: z.enum(["draft", "published", "unpublished", "archived"]).optional(),
   reason: z.string().min(1).optional(),
   reviewStatus: z.enum(["pending_review", "approved", "rejected"]).optional(),
   sceneId: snowflakeIdSchema.nullable().optional(),
@@ -167,6 +175,7 @@ export const sentenceResponseSchema = z.object({
   normalAudioUrl: z.string().nullable(),
   phraseChunks: z.array(z.string()),
   publishStatus: z.string(),
+  importBatchId: z.string().nullable().optional(),
   reviewStatus: z.string(),
   sceneId: z.string().nullable(),
   sceneTags: z.array(z.string()),

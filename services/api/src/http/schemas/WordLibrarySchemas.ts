@@ -58,6 +58,18 @@ export const subtlexusWordListQuerySchema = z.object({
   word: z.string().min(1).optional(),
 });
 
+export const wordMetaListQuerySchema = z.object({
+  importBatchId: z.string().min(1).optional(),
+  keyword: z.string().min(1).optional(),
+  limit: z.coerce.number().int().positive().max(200).default(50),
+  normalizedWord: z.string().min(1).optional(),
+  offset: z.coerce.number().int().nonnegative().default(0),
+  sortBy: z.enum(["createdAt", "updatedAt", "word"]).default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  source: z.string().min(1).optional(),
+  wordId: snowflakeIdSchema.optional(),
+});
+
 export const wordParamsSchema = z.object({
   id: snowflakeIdSchema,
 });
@@ -120,6 +132,22 @@ export const createWordsFromSubtlexusBodySchema = z
     path: ["words"],
   });
 
+export const importDictionaryApiBodySchema = z.object({
+  applyToWords: z.boolean().default(true),
+  createMissing: z.boolean().default(true),
+  dryRun: z.boolean().default(false),
+  importBatchId: z.string().min(1).optional(),
+  overwrite: z.boolean().default(false),
+  reason: z.string().min(1).optional(),
+  rows: z.array(z.record(z.unknown())).min(1).max(10000),
+});
+
+export const applyWordMetaBodySchema = z.object({
+  createMissing: z.boolean().default(true),
+  overwrite: z.boolean().default(false),
+  reason: z.string().min(1).optional(),
+});
+
 export const publicWordResponseSchema = z.object({
   audioUrl: z.string().nullable(),
   difficultyLevel: z.number().nullable(),
@@ -129,6 +157,20 @@ export const publicWordResponseSchema = z.object({
   sceneTags: z.array(z.string()),
   word: z.string(),
   wordId: z.string(),
+});
+
+export const publicWordMetaResponseSchema = z.object({
+  derivedFields: z.record(z.unknown()),
+  licenseName: z.string().nullable(),
+  licenseUrl: z.string().nullable(),
+  meanings: z.array(z.record(z.unknown())),
+  normalizedWord: z.string(),
+  phonetics: z.array(z.record(z.unknown())),
+  source: z.string(),
+  sourceUrl: z.string().nullable(),
+  word: z.string(),
+  wordId: z.string().nullable(),
+  wordMetaId: z.string(),
 });
 
 export const adminWordResponseSchema = z.object({
@@ -163,6 +205,24 @@ export const adminWordResponseSchema = z.object({
   wordId: z.string(),
 });
 
+export const wordMetaResponseSchema = z.object({
+  createdAt: z.string(),
+  derivedFields: z.record(z.unknown()),
+  importBatchId: z.string().nullable(),
+  licenseName: z.string().nullable(),
+  licenseUrl: z.string().nullable(),
+  meanings: z.array(z.record(z.unknown())),
+  normalizedWord: z.string(),
+  phonetics: z.array(z.record(z.unknown())),
+  rawPayload: z.record(z.unknown()),
+  source: z.string(),
+  sourceUrl: z.string().nullable(),
+  updatedAt: z.string(),
+  word: z.string(),
+  wordId: z.string().nullable(),
+  wordMetaId: z.string(),
+});
+
 export const subtlexusWordResponseSchema = z.object({
   cdCount: z.number().nullable(),
   cdLow: z.number().nullable(),
@@ -182,8 +242,10 @@ export const subtlexusWordResponseSchema = z.object({
 });
 
 export const subtlexusWordListResponseSchema = z.object({ items: z.array(subtlexusWordResponseSchema) });
+export const wordMetaListResponseSchema = z.object({ items: z.array(wordMetaResponseSchema) });
 
 export const publicWordListResponseSchema = z.object({ items: z.array(publicWordResponseSchema) });
+export const publicWordMetaListResponseSchema = z.object({ items: z.array(publicWordMetaResponseSchema) });
 export const adminWordListResponseSchema = z.object({ items: z.array(adminWordResponseSchema) });
 
 export const wordFrequencyImportResponseSchema = z.object({
@@ -202,4 +264,18 @@ export const createWordsFromSubtlexusResponseSchema = z.object({
   created: z.number(),
   skippedExisting: z.number(),
   source: z.literal("subtlexus"),
+});
+
+export const importDictionaryApiResponseSchema = z.object({
+  applied: z.number(),
+  applyToWords: z.boolean(),
+  createMissing: z.boolean(),
+  created: z.number(),
+  dryRun: z.boolean(),
+  importBatchId: z.string(),
+  linked: z.number(),
+  skippedRows: z.number(),
+  total: z.number().optional(),
+  totalRows: z.number(),
+  updated: z.number(),
 });

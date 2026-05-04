@@ -40,7 +40,6 @@ import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import PersonIcon from "@mui/icons-material/Person";
-import PsychologyIcon from "@mui/icons-material/Psychology";
 import SaveIcon from "@mui/icons-material/Save";
 import RepeatIcon from "@mui/icons-material/Repeat";
 import SpellcheckIcon from "@mui/icons-material/Spellcheck";
@@ -49,6 +48,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError } from "./api/client";
 import { adminApi, learningApi } from "./api/learningActivationApi";
+import { ContentAdminConsole, type ContentAdminModule } from "./features/contentAdmin/components/ContentAdminConsole";
 import { TodayPanel, type PracticeResult } from "./features/learning/components/TodayPanel";
 import { clearAdminSession, loadAdminSession, saveAdminSession } from "./session/adminSessionStore";
 import { clearSession, loadSession, saveSession } from "./session/sessionStore";
@@ -57,6 +57,7 @@ import type {
   Course,
   DailyTask,
   JsonRecord,
+  ListResponse,
   Scene,
   Sentence,
   SubtlexusImportResult,
@@ -64,12 +65,14 @@ import type {
   UserSession,
   VocabularyOverview,
   WordEntry,
+  WordMeta,
 } from "./types";
 
 type View = "learning" | "admin";
-type LearningTab = "today" | "assessment" | "library" | "courses" | "listen" | "report" | "profile";
+type LearningTab = "today" | "assessment" | "dictionary" | "library" | "courses" | "listen" | "report" | "profile";
 type AssessmentExposureKey = "rare" | "occasional" | "familiarReading" | "frequent";
 type AdminModule =
+  | ContentAdminModule
   | "dashboard"
   | "admin-foundation"
   | "word-library"
@@ -87,6 +90,7 @@ const fallbackUserIdPrefix = "local-demo-user";
 const learningTabs: Array<{ key: LearningTab; label: string; icon: JSX.Element }> = [
   { icon: <TaskAltIcon />, key: "today", label: "今日任务" },
   { icon: <AssessmentIcon />, key: "assessment", label: "水平评估" },
+  { icon: <SpellcheckIcon />, key: "dictionary", label: "词典" },
   { icon: <SpellcheckIcon />, key: "library", label: "我的词库" },
   { icon: <MenuBookIcon />, key: "courses", label: "课程" },
   { icon: <HeadphonesIcon />, key: "listen", label: "听读" },
@@ -111,21 +115,19 @@ const defaultAssessmentExposure = assessmentExposureOptions[1] as {
   vocabularyEstimate: number;
 };
 
-const adminModules: Array<{ key: AdminModule; label: string; summary: string; icon: JSX.Element }> = [
-  { icon: <FactCheckIcon />, key: "dashboard", label: "总览", summary: "权限、审计、模块入口" },
-  { icon: <PersonIcon />, key: "admin-foundation", label: "M1 管理员", summary: "账号、登录、禁用、重置密码" },
-  { icon: <SpellcheckIcon />, key: "word-library", label: "M2 词库", summary: "SUBTLEXus 词条、难度、发布" },
-  { icon: <MenuBookIcon />, key: "corpus-course", label: "M3 语料课程", summary: "场景、课程、句子、音频" },
-  { icon: <PsychologyIcon />, key: "auto-annotation", label: "M4 自动标注", summary: "陷阱、干扰项、目标词、短语块" },
-  { icon: <AssessmentIcon />, key: "assessment", label: "M5 评估", summary: "问卷、矩阵、抽样、版本" },
-  { icon: <LibraryBooksIcon />, key: "user-vocabulary", label: "M6 用户词库", summary: "待激活、巩固中、已掌握状态和人工修正" },
-  { icon: <RepeatIcon />, key: "activation-practice", label: "M7 激活练习", summary: "练习规则、异常结果" },
-  { icon: <TaskAltIcon />, key: "daily-task", label: "M8 每日任务", summary: "策略、生成日志、可视化" },
-  { icon: <HeadphonesIcon />, key: "listen-repeat", label: "M9 听读跟读", summary: "模式 A/B/C、ASR、质量排查" },
-  { icon: <FlagIcon />, key: "course-report", label: "M10 课程报告", summary: "课程进度、用户报告" },
+type AdminModuleMeta = { category: "内容生产" | "词库"; icon: JSX.Element; key: AdminModule; label: string; summary: string };
+
+const adminModules: AdminModuleMeta[] = [
+  { category: "内容生产", icon: <FactCheckIcon />, key: "overview", label: "内容概览", summary: "场景、课程、未分配句子和发布风险" },
+  { category: "内容生产", icon: <LibraryBooksIcon />, key: "content", label: "场景 / 课程", summary: "场景与课程一体管理，课程可直接关联句子" },
+  { category: "内容生产", icon: <SpellcheckIcon />, key: "sentences", label: "句子池", summary: "筛选、详情、音频状态和引用信息" },
+  { category: "内容生产", icon: <UploadFileIcon />, key: "imports", label: "批量导入", summary: "CSV/JSON 上传、映射、预校验和结果" },
+  { category: "内容生产", icon: <RepeatIcon />, key: "composition", label: "课程编排", summary: "左侧句子池、右侧课程句子排序" },
+  { category: "内容生产", icon: <FlagIcon />, key: "publishing", label: "发布校验", summary: "状态流转、阻断项和默认音频提示" },
+  { category: "词库", icon: <SpellcheckIcon />, key: "word-library", label: "词频 / 单词", summary: "SUBTLEXus 词频导入、词条筛选、单词新建和批量发布" },
 ];
 
-const defaultAdminModule = adminModules[0] as { key: AdminModule; label: string; summary: string; icon: JSX.Element };
+const defaultAdminModule = adminModules[0] as AdminModuleMeta;
 
 type WordFormState = {
   audioStatus: "missing" | "ready" | "failed";
@@ -193,13 +195,24 @@ type WordListFilterState = {
   sortOrder: "asc" | "desc";
 };
 
+type WordMetaFilterState = {
+  importBatchId: string;
+  keyword: string;
+  limit: string;
+  normalizedWord: string;
+  offset: string;
+  sortBy: "createdAt" | "updatedAt" | "word";
+  sortOrder: "asc" | "desc";
+  source: string;
+};
+
 type BulkWordStatusState = {
   audioStatus: "" | WordFormState["audioStatus"];
   publishStatus: "" | WordFormState["publishStatus"];
   reviewStatus: "" | WordFormState["reviewStatus"];
 };
 
-type WordLibraryTab = "subtlexus" | "words";
+type WordLibraryTab = "subtlexus" | "words" | "wordMeta";
 
 const emptyWordForm: WordFormState = {
   audioStatus: "missing",
@@ -267,6 +280,17 @@ const emptyWordListFilters: WordListFilterState = {
   sortOrder: "desc",
 };
 
+const emptyWordMetaFilters: WordMetaFilterState = {
+  importBatchId: "",
+  keyword: "",
+  limit: "10",
+  normalizedWord: "",
+  offset: "0",
+  sortBy: "createdAt",
+  sortOrder: "desc",
+  source: "",
+};
+
 const emptyBulkWordStatus: BulkWordStatusState = {
   audioStatus: "",
   publishStatus: "",
@@ -297,7 +321,7 @@ export function App(): JSX.Element {
     setView(next.view);
     if (next.learningTab) setLearningTab(next.learningTab);
     if (next.adminModule) setAdminModule(next.adminModule);
-    window.location.hash = next.view === "admin" ? `#/admin/${next.adminModule ?? "dashboard"}` : `#/${next.learningTab ?? "today"}`;
+    window.location.hash = next.view === "admin" ? `#/admin/${next.adminModule ?? "overview"}` : `#/${next.learningTab ?? "today"}`;
   }
 
   function ensureUserSession(): UserSession {
@@ -337,7 +361,7 @@ export function App(): JSX.Element {
             <Button onClick={() => navigate({ learningTab: "today", view: "learning" })} startIcon={<TaskAltIcon />} variant={view === "learning" ? "contained" : "outlined"}>
               学习端
             </Button>
-            <Button onClick={() => navigate({ adminModule: "dashboard", view: "admin" })} startIcon={<FactCheckIcon />} variant={view === "admin" ? "contained" : "outlined"}>
+            <Button onClick={() => navigate({ adminModule: "overview", view: "admin" })} startIcon={<FactCheckIcon />} variant={view === "admin" ? "contained" : "outlined"}>
               管理后台
             </Button>
           </Stack>
@@ -387,6 +411,7 @@ function LearningWorkspace({
   const [activeAssessment, setActiveAssessment] = useState<JsonRecord | null>(null);
   const [assessmentResult, setAssessmentResult] = useState<JsonRecord | null>(null);
   const [assessmentNotice, setAssessmentNotice] = useState<string | null>(null);
+  const [dataWarning, setDataWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -397,25 +422,34 @@ function LearningWorkspace({
       setDailyTask(null);
       return { overview: nextOverview, task: null };
     }
-    const nextTask = await learningApi.dailyTask();
-    setDailyTask(nextTask);
-    return { overview: nextOverview, task: nextTask };
+    try {
+      const nextTask = await learningApi.dailyTask();
+      setDailyTask(nextTask);
+      return { overview: nextOverview, task: nextTask };
+    } catch (caught) {
+      setDailyTask(null);
+      setDataWarning((current) => [current, `今日任务接口暂不可用：${readableError(caught)}`].filter(Boolean).join("；"));
+      return { overview: nextOverview, task: null };
+    }
   }, []);
 
   const loadLearning = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setDataWarning(null);
     try {
+      const warnings: string[] = [];
       const [wordList, courseList, sentenceList, assessment] = await Promise.all([
         learningApi.words(),
-        learningApi.courses(),
-        learningApi.sentences(),
+        loadOptionalLearningList("课程列表", learningApi.courses, warnings),
+        loadOptionalLearningList("句子列表", learningApi.sentences, warnings),
         learningApi.activeAssessment(),
       ]);
       setWords(wordList.items);
       setCourses(courseList.items);
       setSentences(sentenceList.items);
       setActiveAssessment(assessment);
+      if (warnings.length > 0) setDataWarning(warnings.join("；"));
       if (loadSession()) {
         await loadUserPlan();
       }
@@ -456,7 +490,6 @@ function LearningWorkspace({
       }
     } catch (caught) {
       setError(readableError(caught));
-      throw caught;
     } finally {
       setLoading(false);
     }
@@ -533,31 +566,19 @@ function LearningWorkspace({
     }
   }
 
-  async function submitPractice(): Promise<void> {
+  async function submitPractice(sentence: Sentence): Promise<void> {
     ensureUserSession();
-    const firstWord = words[0];
-    const firstSentence = sentences[0];
     setLoading(true);
     try {
-      await learningApi.activationAttempt({
-        correctAnswer: firstWord?.meaningCn ?? "示例释义",
-        isCorrect: true,
-        practiceType: "audio_meaning",
-        replayCount: 1,
-        selectedAnswer: firstWord?.meaningCn ?? "示例释义",
-        wordId: firstWord?.wordId,
+      await learningApi.listenRepeatAttempt({
+        mode: "A",
+        originalAudioDurationMs: null,
+        recordingDurationMs: null,
+        sentenceId: sentence.sentenceId,
+        targetWordHits: sentence.targetWords ?? [],
+        textMatchRate: null,
+        transcript: sentence.sentenceText,
       });
-      if (firstSentence) {
-        await learningApi.listenRepeatAttempt({
-          mode: "A",
-          originalAudioDurationMs: 3200,
-          recordingDurationMs: 3400,
-          sentenceId: firstSentence.sentenceId,
-          targetWordHits: firstSentence.targetWords ?? [],
-          textMatchRate: 0.92,
-          transcript: firstSentence.sentenceText,
-        });
-      }
       await loadLearning();
     } catch (caught) {
       setError(readableError(caught));
@@ -575,6 +596,7 @@ function LearningWorkspace({
       </Tabs>
       {loading ? <LinearProgress /> : null}
       {error ? <Alert severity="warning">{error}</Alert> : null}
+      {dataWarning ? <Alert severity="info">{dataWarning}</Alert> : null}
       {tab === "today" ? (
         <TodayPanel
           dailyTask={dailyTask}
@@ -598,6 +620,7 @@ function LearningWorkspace({
           onStart={startAssessment}
         />
       ) : null}
+      {tab === "dictionary" ? <DictionaryPanel /> : null}
       {tab === "library" ? <VocabularyPanel overview={overview} words={words} /> : null}
       {tab === "courses" ? <CoursePanel courses={courses} scenes={[]} sentences={sentences} /> : null}
       {tab === "listen" ? <ListenPanel onSubmit={submitPractice} sentences={sentences} /> : null}
@@ -690,6 +713,84 @@ function VocabularyPanel({ overview, words }: { overview: VocabularyOverview | n
   );
 }
 
+function DictionaryPanel(): JSX.Element {
+  const [keyword, setKeyword] = useState("");
+  const [rows, setRows] = useState<WordMeta[]>([]);
+  const [selected, setSelected] = useState<WordMeta | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function search(): Promise<void> {
+    if (!keyword.trim()) {
+      setError("请输入要查询的单词。");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await learningApi.wordMeta({ keyword: keyword.trim(), limit: 10, offset: 0 });
+      setRows(response.items);
+      setSelected(response.items[0] ?? null);
+    } catch (caught) {
+      setRows([]);
+      setSelected(null);
+      setError(readableError(caught));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Stack spacing={2}>
+      <Card className="primaryPanel">
+        <CardContent>
+          <Stack direction={{ md: "row", xs: "column" }} spacing={1} sx={{ alignItems: { md: "center", xs: "stretch" } }}>
+            <TextField
+              label="查询单词"
+              onChange={(event) => setKeyword(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void search();
+              }}
+              value={keyword}
+            />
+            <Button disabled={loading} onClick={() => void search()} variant="contained">查询</Button>
+          </Stack>
+          {loading ? <LinearProgress sx={{ mt: 2 }} /> : null}
+          {error ? <Alert severity="warning" sx={{ mt: 2 }}>{error}</Alert> : null}
+        </CardContent>
+      </Card>
+      {rows.length > 1 ? (
+        <Card className="primaryPanel">
+          <CardContent>
+            <Typography variant="h6">匹配结果</Typography>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mt: 1 }}>
+              {rows.map((meta) => (
+                <Chip
+                  clickable
+                  color={selected?.wordMetaId === meta.wordMetaId ? "primary" : "default"}
+                  key={meta.wordMetaId}
+                  label={`${meta.word} · ${wordMetaPhoneticsText(meta) || meta.source}`}
+                  onClick={() => setSelected(meta)}
+                  variant={selected?.wordMetaId === meta.wordMetaId ? "filled" : "outlined"}
+                />
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      ) : null}
+      {selected ? (
+        <Card className="primaryPanel">
+          <CardContent>
+            <WordMetaDetail meta={selected} />
+          </CardContent>
+        </Card>
+      ) : rows.length === 0 && !loading ? (
+        <Alert severity="info">输入单词后可以查看音标、词性、英文释义、来源和原始 DictionaryAPI 元信息。</Alert>
+      ) : null}
+    </Stack>
+  );
+}
+
 function CoursePanel({ courses, scenes, sentences }: { courses: Course[]; scenes: Scene[]; sentences: Sentence[] }): JSX.Element {
   return (
     <Stack className="contentGrid" direction={{ md: "row", xs: "column" }} spacing={2}>
@@ -722,7 +823,7 @@ function CoursePanel({ courses, scenes, sentences }: { courses: Course[]; scenes
   );
 }
 
-function ListenPanel({ onSubmit, sentences }: { onSubmit: () => void; sentences: Sentence[] }): JSX.Element {
+function ListenPanel({ onSubmit, sentences }: { onSubmit: (sentence: Sentence) => void; sentences: Sentence[] }): JSX.Element {
   const sentence = sentences[0];
   return (
     <Card className="primaryPanel">
@@ -732,7 +833,7 @@ function ListenPanel({ onSubmit, sentences }: { onSubmit: () => void; sentences:
         <Typography sx={{ my: 2 }} variant="h6">{sentence?.sentenceText ?? "暂无已发布句子"}</Typography>
         <Stack direction="row" spacing={1}>
           <Button disabled={!sentence} startIcon={<HeadphonesIcon />} variant="outlined">播放</Button>
-          <Button disabled={!sentence} onClick={onSubmit} startIcon={<RepeatIcon />} variant="contained">提交跟读</Button>
+          <Button disabled={!sentence} onClick={() => sentence && onSubmit(sentence)} startIcon={<RepeatIcon />} variant="contained">提交跟读</Button>
         </Stack>
       </CardContent>
     </Card>
@@ -789,24 +890,42 @@ function AdminWorkspace({
   onChangeModule: (module: AdminModule) => void;
   onSessionChange: (session: AdminSession | null) => void;
 }): JSX.Element {
+  const navSections = adminModules.reduce<Record<AdminModuleMeta["category"], AdminModuleMeta[]>>(
+    (sections, module) => ({
+      ...sections,
+      [module.category]: [...sections[module.category], module],
+    }),
+    { 内容生产: [], 词库: [] },
+  );
   return (
     <Box component="main" className="adminLayout">
       <Box className="adminNav">
-        <Typography variant="overline">管理后台</Typography>
-        <Stack spacing={1}>
-          {adminModules.map((module) => (
-            <Button
-              fullWidth
-              key={module.key}
-              onClick={() => onChangeModule(module.key)}
-              startIcon={module.icon}
-              sx={{ justifyContent: "flex-start" }}
-              variant={adminModule === module.key ? "contained" : "text"}
-            >
-              {module.label}
-            </Button>
-          ))}
-        </Stack>
+        <Box className="adminNavTitle">
+          <Typography variant="overline">管理后台</Typography>
+          <Typography color="text.secondary" variant="body2">内容与词库运营</Typography>
+        </Box>
+        {Object.entries(navSections).map(([category, modules]) => (
+          <Box className="adminNavSection" key={category}>
+            <Typography className="adminNavSectionTitle" variant="caption">{category}</Typography>
+            <Stack spacing={0.5}>
+              {modules.map((module) => (
+                <Button
+                  className={`adminNavButton${adminModule === module.key ? " isActive" : ""}`}
+                  fullWidth
+                  key={module.key}
+                  onClick={() => onChangeModule(module.key)}
+                  startIcon={module.icon}
+                  variant="text"
+                >
+                  <Box component="span" className="adminNavButtonText">
+                    <span>{module.label}</span>
+                    <span>{module.summary}</span>
+                  </Box>
+                </Button>
+              ))}
+            </Stack>
+          </Box>
+        ))}
       </Box>
       <Box className="adminContent">
         {adminSession ? (
@@ -906,28 +1025,26 @@ function AdminModulePanel({
 
   return (
     <Stack spacing={2}>
-      <Card className="primaryPanel">
-        <CardContent>
-          <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ alignItems: { md: "center", xs: "flex-start" }, justifyContent: "space-between" }}>
-            <Box>
-              <Typography variant="h5">{moduleMeta.label}</Typography>
-              <Typography color="text.secondary">{moduleMeta.summary}</Typography>
-            </Box>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <Chip label={adminSession.displayName} />
-              <Button onClick={logout} startIcon={<LogoutIcon />} variant="outlined">退出</Button>
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
+      <Box className="adminPageHeader">
+        <Box>
+          <Typography variant="h5">{moduleMeta.label}</Typography>
+          <Typography color="text.secondary">{moduleMeta.summary}</Typography>
+        </Box>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Chip label={adminSession.displayName} />
+          <Button onClick={logout} startIcon={<LogoutIcon />} variant="outlined">退出</Button>
+        </Stack>
+      </Box>
       {loading ? <LinearProgress /> : null}
       {error ? <Alert severity="warning">{error}</Alert> : null}
-      {adminModule === "word-library" ? (
+      {isContentAdminModule(adminModule) ? (
+        <ContentAdminConsole module={adminModule} operatorName={adminSession.displayName} />
+      ) : adminModule === "word-library" ? (
         <WordLibraryAdminPanel onError={setError} />
       ) : (
         <>
           <AdminQuickCreate module={adminModule} onSubmit={submitQuickCreate} />
-          <AdminList items={items} module={adminModule} />
+          <AdminList items={items} loading={loading} module={adminModule} onRefresh={() => void load()} />
         </>
       )}
     </Stack>
@@ -952,12 +1069,17 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
   const [createResult, setCreateResult] = useState<JsonRecord | null>(null);
   const [wordFilters, setWordFilters] = useState<WordListFilterState>(emptyWordListFilters);
   const [words, setWords] = useState<WordEntry[]>([]);
+  const [wordMetaFilters, setWordMetaFilters] = useState<WordMetaFilterState>(emptyWordMetaFilters);
+  const [wordMetaRows, setWordMetaRows] = useState<WordMeta[]>([]);
+  const [selectedWordMeta, setSelectedWordMeta] = useState<WordMeta | null>(null);
+  const [wordMetaApplyReason, setWordMetaApplyReason] = useState("");
   const [selectedWordIds, setSelectedWordIds] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<BulkWordStatusState>(emptyBulkWordStatus);
   const [bulkPublishReason, setBulkPublishReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingSources, setLoadingSources] = useState(false);
   const [loadingWords, setLoadingWords] = useState(false);
+  const [loadingWordMeta, setLoadingWordMeta] = useState(false);
   const selectedWords = useMemo(() => words.filter((word) => selectedWordIds.includes(word.wordId)), [selectedWordIds, words]);
   const allWordsSelected = words.length > 0 && words.every((word) => selectedWordIds.includes(word.wordId));
   const someWordsSelected = selectedWordIds.length > 0 && !allWordsSelected;
@@ -1041,6 +1163,40 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
     [fetchWords, wordFilters],
   );
 
+  const fetchWordMeta = useCallback(
+    async (filters: WordMetaFilterState): Promise<void> => {
+      setLoadingWordMeta(true);
+      onError(null);
+      try {
+        const response = await adminApi.wordMeta({
+          importBatchId: filters.importBatchId,
+          keyword: filters.keyword,
+          limit: filters.limit ? Number(filters.limit) : 10,
+          normalizedWord: filters.normalizedWord,
+          offset: filters.offset ? Number(filters.offset) : 0,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder,
+          source: filters.source,
+        });
+        setWordMetaRows(response.items);
+      } catch (caught) {
+        onError(readableError(caught));
+      } finally {
+        setLoadingWordMeta(false);
+      }
+    },
+    [onError],
+  );
+
+  const loadWordMeta = useCallback(
+    async (override?: Partial<WordMetaFilterState>): Promise<void> => {
+      const filters = { ...wordMetaFilters, ...override };
+      if (override) setWordMetaFilters(filters);
+      await fetchWordMeta(filters);
+    },
+    [fetchWordMeta, wordMetaFilters],
+  );
+
   useEffect(() => {
     void fetchSources(emptySubtlexusFilters);
   }, [fetchSources]);
@@ -1048,6 +1204,10 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
   useEffect(() => {
     void fetchWords(emptyWordListFilters);
   }, [fetchWords]);
+
+  useEffect(() => {
+    void fetchWordMeta(emptyWordMetaFilters);
+  }, [fetchWordMeta]);
 
   function updateForm<K extends keyof WordFormState>(key: K, value: WordFormState[K]): void {
     setForm((current) => ({ ...current, [key]: value }));
@@ -1063,6 +1223,10 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
 
   function updateWordFilter<K extends keyof WordListFilterState>(key: K, value: WordListFilterState[K]): void {
     setWordFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateWordMetaFilter<K extends keyof WordMetaFilterState>(key: K, value: WordMetaFilterState[K]): void {
+    setWordMetaFilters((current) => ({ ...current, [key]: value }));
   }
 
   function updateBulkStatus<K extends keyof BulkWordStatusState>(key: K, value: BulkWordStatusState[K]): void {
@@ -1088,6 +1252,11 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
   function wordPageChange(nextPage: number): void {
     const limitValue = positiveInt(wordFilters.limit, 10);
     void loadWords({ offset: String((nextPage - 1) * limitValue) });
+  }
+
+  function wordMetaPageChange(nextPage: number): void {
+    const limitValue = positiveInt(wordMetaFilters.limit, 10);
+    void loadWordMeta({ offset: String((nextPage - 1) * limitValue) });
   }
 
   function openCreateWordDialog(): void {
@@ -1171,6 +1340,26 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
     }
   }
 
+  async function applySelectedWordMeta(meta: WordMeta): Promise<void> {
+    setSubmitting(true);
+    onError(null);
+    try {
+      await adminApi.applyWordMeta(meta.wordMetaId, {
+        createMissing: true,
+        overwrite: false,
+        reason: wordMetaApplyReason.trim() || `应用 ${meta.word} 的 DictionaryAPI 元信息`,
+      });
+      setSelectedWordMeta(null);
+      setWordMetaApplyReason("");
+      await loadWordMeta();
+      await loadWords();
+    } catch (caught) {
+      onError(readableError(caught));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function submitImport(): Promise<void> {
     if (!file) {
       onError("请选择 .xls 或 .xlsx 文件。");
@@ -1231,8 +1420,9 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
             value={wordLibraryTab}
             variant="scrollable"
           >
-            <Tab label="SUBTLEXus 导入" value="subtlexus" />
-            <Tab label="学习词条" value="words" />
+            <Tab label="SUBTLEXus 词频" value="subtlexus" />
+            <Tab label="单词管理" value="words" />
+            <Tab label="Word Meta" value="wordMeta" />
           </Tabs>
         </CardContent>
       </Card>
@@ -1285,7 +1475,7 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
               <Typography variant="h6">SUBTLEXus 来源词</Typography>
               <Typography color="text.secondary">对应 GET /admin/word-library/subtlexus-words，确认导入批次和频率字段后再生成学习词条。</Typography>
             </Box>
-            <Button disabled={loadingSources} onClick={() => void loadSources()} size="small" variant="outlined">刷新来源词</Button>
+            <Button disabled={loadingSources} onClick={() => void loadSources()} size="small" variant="outlined">查询 / 刷新</Button>
           </Stack>
           <Box className="filterGrid">
             <TextField label="importBatchId" onChange={(event) => updateSourceFilter("importBatchId", event.target.value)} value={sourceFilters.importBatchId} />
@@ -1305,6 +1495,7 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
               <MenuItem value="desc">desc</MenuItem>
               <MenuItem value="asc">asc</MenuItem>
             </TextField>
+            <Button disabled={loadingSources} onClick={() => void loadSources({ offset: "0" })} variant="contained">查询 / 刷新</Button>
           </Box>
           {loadingSources ? <LinearProgress sx={{ mt: 2 }} /> : null}
           <Box className="tableScroller">
@@ -1398,7 +1589,7 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
               <Typography color="text.secondary">对应 GET /admin/word-library/words，覆盖状态、音频、释义、频率、标签和排除字段。</Typography>
             </Box>
             <Stack direction="row" spacing={1}>
-              <Button disabled={loadingWords} onClick={() => void loadWords()} size="small" variant="outlined">刷新词条</Button>
+              <Button disabled={loadingWords} onClick={() => void loadWords()} size="small" variant="outlined">查询 / 刷新</Button>
               <Button disabled={submitting} onClick={openCreateWordDialog} size="small" startIcon={<SaveIcon />} variant="contained">创建词条</Button>
             </Stack>
           </Stack>
@@ -1441,6 +1632,7 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
             <FormControlLabel className="noWrapControl" control={<Checkbox checked={wordFilters.hasMeaning} onChange={(event) => updateWordFilter("hasMeaning", event.target.checked)} />} label="有释义" />
             <FormControlLabel className="noWrapControl" control={<Checkbox checked={wordFilters.hasAudio} onChange={(event) => updateWordFilter("hasAudio", event.target.checked)} />} label="有音频" />
             <FormControlLabel className="noWrapControl" control={<Checkbox checked={wordFilters.isExcluded} onChange={(event) => updateWordFilter("isExcluded", event.target.checked)} />} label="仅排除词" />
+            <Button disabled={loadingWords} onClick={() => void loadWords({ offset: "0" })} variant="contained">查询 / 刷新</Button>
 	          </Box>
 	          {loadingWords ? <LinearProgress sx={{ mt: 2 }} /> : null}
           <Stack spacing={1.25} sx={{ my: 2 }}>
@@ -1578,6 +1770,46 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
             </CardContent>
           </Card>
       ) : null}
+      {wordLibraryTab === "wordMeta" ? (
+        <Card className="primaryPanel">
+          <CardContent>
+            <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ alignItems: { md: "center", xs: "flex-start" }, justifyContent: "space-between" }}>
+              <Box>
+                <Typography variant="h6">DictionaryAPI 元信息</Typography>
+                <Typography color="text.secondary">对应 GET /admin/word-library/word-meta，保存音标、释义结构、派生字段、来源和原始 payload。</Typography>
+              </Box>
+              <Button disabled={loadingWordMeta} onClick={() => void loadWordMeta()} size="small" variant="outlined">查询 / 刷新</Button>
+            </Stack>
+            <Box className="filterGrid">
+              <TextField label="keyword" onChange={(event) => updateWordMetaFilter("keyword", event.target.value)} value={wordMetaFilters.keyword} />
+              <TextField label="normalizedWord" onChange={(event) => updateWordMetaFilter("normalizedWord", event.target.value)} value={wordMetaFilters.normalizedWord} />
+              <TextField label="source" onChange={(event) => updateWordMetaFilter("source", event.target.value)} value={wordMetaFilters.source} />
+              <TextField label="importBatchId" onChange={(event) => updateWordMetaFilter("importBatchId", event.target.value)} value={wordMetaFilters.importBatchId} />
+              <TextField label="limit" onChange={(event) => updateWordMetaFilter("limit", event.target.value)} type="number" value={wordMetaFilters.limit} />
+              <TextField label="offset" onChange={(event) => updateWordMetaFilter("offset", event.target.value)} type="number" value={wordMetaFilters.offset} />
+              <TextField label="sortBy" onChange={(event) => updateWordMetaFilter("sortBy", event.target.value as WordMetaFilterState["sortBy"])} select value={wordMetaFilters.sortBy}>
+                <MenuItem value="createdAt">createdAt</MenuItem>
+                <MenuItem value="updatedAt">updatedAt</MenuItem>
+                <MenuItem value="word">word</MenuItem>
+              </TextField>
+              <TextField label="sortOrder" onChange={(event) => updateWordMetaFilter("sortOrder", event.target.value as "asc" | "desc")} select value={wordMetaFilters.sortOrder}>
+                <MenuItem value="desc">desc</MenuItem>
+                <MenuItem value="asc">asc</MenuItem>
+              </TextField>
+              <Button disabled={loadingWordMeta} onClick={() => void loadWordMeta({ offset: "0" })} variant="contained">查询 / 刷新</Button>
+            </Box>
+            {loadingWordMeta ? <LinearProgress sx={{ mt: 2 }} /> : null}
+            <WordMetaTable onApply={setSelectedWordMeta} rows={wordMetaRows} />
+            <PaginationControls
+              itemCount={wordMetaRows.length}
+              limit={positiveInt(wordMetaFilters.limit, 10)}
+              loading={loadingWordMeta}
+              offset={positiveInt(wordMetaFilters.offset, 0)}
+              onPageChange={wordMetaPageChange}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
       <Dialog fullWidth maxWidth="md" onClose={() => !submitting && resetForm()} open={wordDialogOpen}>
         <DialogTitle>{editingWordId ? "编辑词条资料" : "创建词条"}</DialogTitle>
         <DialogContent>
@@ -1635,6 +1867,25 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
           </Button>
         </DialogActions>
       </Dialog>
+      {selectedWordMeta ? (
+        <Dialog fullWidth maxWidth="md" onClose={() => !submitting && setSelectedWordMeta(null)} open>
+          <DialogTitle>应用 Word Meta 到单词</DialogTitle>
+          <DialogContent>
+            <WordMetaDetail meta={selectedWordMeta} />
+            <TextField
+              fullWidth
+              label="应用原因"
+              onChange={(event) => setWordMetaApplyReason(event.target.value)}
+              sx={{ mt: 2 }}
+              value={wordMetaApplyReason}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button disabled={submitting} onClick={() => setSelectedWordMeta(null)} variant="outlined">取消</Button>
+            <Button disabled={submitting} onClick={() => void applySelectedWordMeta(selectedWordMeta)} variant="contained">应用</Button>
+          </DialogActions>
+        </Dialog>
+      ) : null}
     </Stack>
   );
 }
@@ -1649,6 +1900,108 @@ function HeaderTip({ label, tip }: { label: string; tip: string }): JSX.Element 
 
 function headerTip(label: string, tip: string): JSX.Element {
   return <HeaderTip label={label} tip={tip} />;
+}
+
+function WordMetaTable({ onApply, rows }: { onApply: (meta: WordMeta) => void; rows: WordMeta[] }): JSX.Element {
+  return (
+    <Box className="tableScroller">
+      <Table padding="none" size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Word</TableCell>
+            <TableCell>音标</TableCell>
+            <TableCell>词性</TableCell>
+            <TableCell>来源</TableCell>
+            <TableCell>关联</TableCell>
+            <TableCell>操作</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((meta) => (
+            <TableRow hover key={meta.wordMetaId}>
+              <TableCell>
+                <Typography>{meta.word}</Typography>
+              </TableCell>
+              <TableCell>{wordMetaPhoneticsText(meta)}</TableCell>
+              <TableCell>{wordMetaPartsOfSpeechText(meta)}</TableCell>
+              <TableCell>{meta.source}{meta.licenseName ? ` · ${meta.licenseName}` : ""}</TableCell>
+              <TableCell>{meta.wordId ? shortId(meta.wordId) : "未关联"}</TableCell>
+              <TableCell><Button onClick={() => onApply(meta)} size="small">查看 / 应用</Button></TableCell>
+            </TableRow>
+          ))}
+          {rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6}>暂无 Word Meta。</TableCell>
+            </TableRow>
+          ) : null}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
+function WordMetaDetail({ meta }: { meta: WordMeta }): JSX.Element {
+  const entry = wordMetaDictionaryEntry(meta);
+  const phonetics = wordMetaPhoneticItems(meta);
+  return (
+    <Box className="dictionaryEntry">
+      <Box className="dictionaryHero">
+        <Box>
+          <Typography className="dictionaryWord" component="h2">{entry.word || meta.word}</Typography>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mt: 1 }}>
+            {phonetics.map((item) => item.text).filter(Boolean).slice(0, 3).map((text) => <Chip className="phoneticChip" key={text} label={text} />)}
+          </Stack>
+        </Box>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", justifyContent: { md: "flex-end", xs: "flex-start" } }}>
+          {phonetics.flatMap((item) => (item.audio ? [item.audio] : [])).slice(0, 2).map((audio) => <PronunciationPlayer audio={audio} key={audio} />)}
+        </Stack>
+      </Box>
+
+      <Box className="dictionaryBody singleColumn">
+        <Box className="dictionaryMain">
+          {entry.meanings.map((meaning) => (
+            <Box className="dictionaryMeaning" key={`${meta.wordMetaId}-${meaning.partOfSpeech}-${meaning.definitions.map((definition) => definition.definition).join("|").slice(0, 80)}`}>
+              <Typography className="partOfSpeech">{meaning.partOfSpeech || "meaning"}</Typography>
+              <Stack spacing={1.5}>
+                {meaning.definitions.map((definition, index) => (
+                  <Box className="definitionBlock" key={`${definition.definition}-${definition.example ?? ""}`}>
+                    <Typography className="definitionNumber">{index + 1}</Typography>
+                    <Box>
+                      <Typography>{definition.definition}</Typography>
+                      {definition.example ? <Typography className="exampleSentence">{definition.example}</Typography> : null}
+                      <WordRelationChips label="同义词" values={[...meaning.synonyms, ...definition.synonyms]} />
+                      <WordRelationChips label="反义词" values={[...meaning.antonyms, ...definition.antonyms]} />
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          ))}
+          {entry.meanings.length === 0 ? <Alert severity="info">暂无可展示的释义结构。</Alert> : null}
+        </Box>
+
+      </Box>
+    </Box>
+  );
+}
+
+function PronunciationPlayer({ audio, compact }: { audio: string; compact?: boolean }): JSX.Element {
+  return (
+    <Box className={compact ? "pronunciationPlayer isCompact" : "pronunciationPlayer"}>
+      <audio aria-label="发音播放器" controls preload="none" src={audio} />
+    </Box>
+  );
+}
+
+function WordRelationChips({ label, values }: { label: string; values: string[] }): JSX.Element | null {
+  const uniqueValues = [...new Set(values.filter(Boolean))].slice(0, 8);
+  if (uniqueValues.length === 0) return null;
+  return (
+    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexWrap: "wrap", mt: 0.75 }}>
+      <Typography color="text.secondary" variant="caption">{label}</Typography>
+      {uniqueValues.map((value) => <Chip key={`${label}-${value}`} label={value} size="small" variant="outlined" />)}
+    </Stack>
+  );
 }
 
 function PaginationControls({
@@ -1746,7 +2099,7 @@ function AdminQuickCreate({ module, onSubmit }: { module: AdminModule; onSubmit:
   );
 }
 
-function AdminList({ items, module }: { items: JsonRecord[]; module: AdminModule }): JSX.Element {
+function AdminList({ items, loading, module, onRefresh }: { items: JsonRecord[]; loading: boolean; module: AdminModule; onRefresh: () => void }): JSX.Element {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
@@ -1758,7 +2111,10 @@ function AdminList({ items, module }: { items: JsonRecord[]; module: AdminModule
   return (
     <Card className="primaryPanel">
       <CardContent>
-        <Typography variant="h6">数据列表</Typography>
+        <Stack direction={{ md: "row", xs: "column" }} spacing={1} sx={{ alignItems: { md: "center", xs: "stretch" }, justifyContent: "space-between" }}>
+          <Typography variant="h6">数据列表</Typography>
+          <Button disabled={loading} onClick={onRefresh} size="small" variant="contained">查询 / 刷新</Button>
+        </Stack>
         <List dense>
           {pageItems.map((item, index) => (
             <ListItem key={String(item.id ?? item.wordId ?? item.courseId ?? item.sceneId ?? item.adminUserId ?? index)}>
@@ -1771,7 +2127,7 @@ function AdminList({ items, module }: { items: JsonRecord[]; module: AdminModule
           canGoNext={items.length > page * pageSize}
           itemCount={pageItems.length}
           limit={pageSize}
-          loading={false}
+          loading={loading}
           offset={(page - 1) * pageSize}
           onPageChange={(nextPage) => setPage(Math.max(1, nextPage))}
         />
@@ -1882,6 +2238,114 @@ function shortId(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}...` : value;
 }
 
+type DictionaryDefinition = {
+  antonyms: string[];
+  definition: string;
+  example: string | null;
+  synonyms: string[];
+};
+
+type DictionaryMeaning = {
+  antonyms: string[];
+  definitions: DictionaryDefinition[];
+  partOfSpeech: string;
+  synonyms: string[];
+};
+
+type DictionaryPhonetic = {
+  audio: string | null;
+  text: string;
+};
+
+type DictionaryEntry = {
+  licenseName: string | null;
+  meanings: DictionaryMeaning[];
+  phonetic: string;
+  phonetics: DictionaryPhonetic[];
+  sourceUrls: string[];
+  word: string;
+};
+
+function wordMetaDictionaryEntry(meta: WordMeta): DictionaryEntry {
+  const rawEntry = firstRawPayloadEntry(meta.rawPayload);
+  const meaningsSource = arrayRecordValue(rawEntry, "meanings").length > 0 ? arrayRecordValue(rawEntry, "meanings") : meta.meanings;
+  const license = recordValue(rawEntry.license);
+  return {
+    licenseName: stringRecordValue(license, "name") || meta.licenseName,
+    meanings: meaningsSource.map(dictionaryMeaningFromRecord).filter((meaning) => meaning.definitions.length > 0),
+    phonetic: stringRecordValue(rawEntry, "phonetic"),
+    phonetics: wordMetaPhoneticItems(meta),
+    sourceUrls: stringArrayValue(rawEntry.sourceUrls),
+    word: stringRecordValue(rawEntry, "word") || meta.word,
+  };
+}
+
+function firstRawPayloadEntry(payload: WordMeta["rawPayload"]): JsonRecord {
+  if (Array.isArray(payload)) return recordValue(payload[0]);
+  return recordValue(payload);
+}
+
+function dictionaryMeaningFromRecord(record: JsonRecord): DictionaryMeaning {
+  return {
+    antonyms: stringArrayValue(record.antonyms),
+    definitions: arrayRecordValue(record, "definitions").map(dictionaryDefinitionFromRecord).filter((definition) => definition.definition),
+    partOfSpeech: stringRecordValue(record, "partOfSpeech"),
+    synonyms: stringArrayValue(record.synonyms),
+  };
+}
+
+function dictionaryDefinitionFromRecord(record: JsonRecord): DictionaryDefinition {
+  return {
+    antonyms: stringArrayValue(record.antonyms),
+    definition: stringRecordValue(record, "definition"),
+    example: stringRecordValue(record, "example") || null,
+    synonyms: stringArrayValue(record.synonyms),
+  };
+}
+
+function dictionaryPhoneticFromRecord(record: JsonRecord): DictionaryPhonetic {
+  return {
+    audio: stringRecordValue(record, "audio") || null,
+    text: stringRecordValue(record, "text") || stringRecordValue(record, "phonetic"),
+  };
+}
+
+function wordMetaPhoneticsText(meta: WordMeta): string {
+  const values = wordMetaPhoneticItems(meta)
+    .map((item) => item.text)
+    .filter(Boolean);
+  return values.slice(0, 3).join("  ");
+}
+
+function wordMetaPhoneticItems(meta: WordMeta): DictionaryPhonetic[] {
+  const entry = firstRawPayloadEntry(meta.rawPayload);
+  const rawPhonetics = arrayRecordValue(entry, "phonetics");
+  const source = meta.phonetics.length > 0 ? meta.phonetics : rawPhonetics;
+  return source.map(dictionaryPhoneticFromRecord);
+}
+
+function wordMetaPartsOfSpeechText(meta: WordMeta): string {
+  return [...new Set(wordMetaDictionaryEntry(meta).meanings.map((meaning) => meaning.partOfSpeech).filter(Boolean))].join(", ");
+}
+
+function stringRecordValue(record: JsonRecord, key: string): string {
+  const value = record[key];
+  return typeof value === "string" ? value : "";
+}
+
+function recordValue(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
+}
+
+function arrayRecordValue(record: JsonRecord, key: string): JsonRecord[] {
+  const value = record[key];
+  return Array.isArray(value) ? value.map(recordValue).filter((item) => Object.keys(item).length > 0) : [];
+}
+
+function stringArrayValue(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
 function positiveInt(value: string | number, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
@@ -1911,6 +2375,7 @@ function createLocalUserSession(): UserSession {
 }
 
 async function loadAdminItems(module: AdminModule): Promise<JsonRecord[]> {
+  if (isContentAdminModule(module)) return [];
   if (module === "dashboard") {
     const [accounts, logs] = await Promise.all([adminApi.accounts(), adminApi.auditLogs()]);
     return [...accounts.items, ...logs.items];
@@ -2029,13 +2494,22 @@ function readableError(caught: unknown): string {
   return "请求失败";
 }
 
+async function loadOptionalLearningList<T>(label: string, loader: () => Promise<ListResponse<T>>, warnings: string[]): Promise<ListResponse<T>> {
+  try {
+    return await loader();
+  } catch (caught) {
+    warnings.push(`${label}接口暂不可用：${readableError(caught)}`);
+    return { items: [] };
+  }
+}
+
 function parseRoute(): { view: View; learningTab: LearningTab; adminModule: AdminModule } {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const [area, section] = hash.split("/");
   if (area === "admin") {
     return { adminModule: parseAdminModule(section), learningTab: "today", view: "admin" };
   }
-  return { adminModule: "dashboard", learningTab: parseLearningTab(area), view: "learning" };
+  return { adminModule: "overview", learningTab: parseLearningTab(area), view: "learning" };
 }
 
 function parseLearningTab(value: string | undefined): LearningTab {
@@ -2043,5 +2517,10 @@ function parseLearningTab(value: string | undefined): LearningTab {
 }
 
 function parseAdminModule(value: string | undefined): AdminModule {
-  return adminModules.some((module) => module.key === value) ? (value as AdminModule) : "dashboard";
+  if (value === "scenes" || value === "courses") return value;
+  return adminModules.some((module) => module.key === value) ? (value as AdminModule) : "overview";
+}
+
+function isContentAdminModule(module: AdminModule): module is ContentAdminModule {
+  return ["overview", "content", "scenes", "courses", "sentences", "imports", "composition", "publishing"].includes(module);
 }

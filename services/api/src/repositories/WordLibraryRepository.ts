@@ -1,11 +1,13 @@
-import { and, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import type { AppDatabase } from "../infrastructure/database/Database.js";
-import { wordEntries } from "../infrastructure/database/schema.js";
+import { wordEntries, wordMeta } from "../infrastructure/database/schema.js";
 import type { SnowflakeIdGenerator } from "../infrastructure/SnowflakeIdGenerator.js";
 import type { EntityId } from "../domain/EntityId.js";
 
 export type WordEntryRow = typeof wordEntries.$inferSelect;
 export type WordEntryInsert = typeof wordEntries.$inferInsert;
+export type WordMetaRow = typeof wordMeta.$inferSelect;
+export type WordMetaInsert = typeof wordMeta.$inferInsert;
 
 export interface WordListQuery {
   keyword?: string | undefined;
@@ -27,6 +29,25 @@ export interface WordListQuery {
   sortOrder?: "asc" | "desc" | undefined;
   limit: number;
   offset: number;
+}
+
+export interface WordMetaListQuery {
+  importBatchId?: string | undefined;
+  keyword?: string | undefined;
+  limit: number;
+  normalizedWord?: string | undefined;
+  offset: number;
+  source?: string | undefined;
+  sortBy?: "createdAt" | "updatedAt" | "word" | undefined;
+  sortOrder?: "asc" | "desc" | undefined;
+  wordId?: EntityId | undefined;
+}
+
+export interface WordMetaImportStats {
+  created: number;
+  importBatchId: string;
+  total: number;
+  updated: number;
 }
 
 export class WordLibraryRepository {
@@ -130,6 +151,10 @@ export class WordLibraryRepository {
     return this.db.query.wordEntries.findFirst({ where: eq(wordEntries.word, word) });
   }
 
+  async findByLemma(lemma: string): Promise<WordEntryRow | undefined> {
+    return this.db.query.wordEntries.findFirst({ where: eq(wordEntries.lemma, lemma) });
+  }
+
   async create(input: Omit<WordEntryInsert, "id" | "createdAt" | "updatedAt">): Promise<WordEntryRow> {
     const now = this.now();
     const [row] = await this.db
@@ -156,4 +181,110 @@ export class WordLibraryRepository {
     return { before, after };
   }
 
+  async listMeta(query: WordMetaListQuery): Promise<WordMetaRow[]> {
+    const filters = [];
+    if (query.keyword) {
+      filters.push(sql`(${wordMeta.word} ilike ${`%${query.keyword}%`} OR ${wordMeta.normalizedWord} ilike ${`%${query.keyword}%`} OR ${wordMeta.source} ilike ${`%${query.keyword}%`} OR ${wordMeta.importBatchId} ilike ${`%${query.keyword}%`})`);
+    }
+    if (query.normalizedWord) {
+      filters.push(ilike(wordMeta.normalizedWord, `%${query.normalizedWord}%`));
+    }
+    if (query.source) {
+      filters.push(eq(wordMeta.source, query.source));
+    }
+    if (query.importBatchId) {
+      filters.push(eq(wordMeta.importBatchId, query.importBatchId));
+    }
+    if (query.wordId !== undefined) {
+      filters.push(eq(wordMeta.wordId, query.wordId));
+    }
+
+    const sortColumn = {
+      createdAt: wordMeta.createdAt,
+      updatedAt: wordMeta.updatedAt,
+      word: wordMeta.word,
+    }[query.sortBy ?? "createdAt"];
+    const sortDirection = query.sortOrder === "asc" ? sortColumn : desc(sortColumn);
+    const exactMatchRank = query.keyword
+      ? sql`CASE WHEN lower(${wordMeta.word}) = lower(${query.keyword}) OR lower(${wordMeta.normalizedWord}) = lower(${query.keyword}) THEN 0 ELSE 1 END`
+      : undefined;
+
+    const queryBuilder = this.db
+      .select()
+      .from(wordMeta)
+      .where(filters.length > 0 ? and(...filters) : undefined);
+    if (exactMatchRank) {
+      return queryBuilder.orderBy(exactMatchRank, sortDirection).limit(query.limit).offset(query.offset);
+    }
+    return queryBuilder.orderBy(sortDirection).limit(query.limit).offset(query.offset);
+  }
+
+  async findMetaById(id: EntityId): Promise<WordMetaRow | undefined> {
+    return this.db.query.wordMeta.findFirst({ where: eq(wordMeta.id, id) });
+  }
+
+  async upsertMetaRows(rows: Array<Omit<WordMetaInsert, "id" | "createdAt" | "updatedAt">>): Promise<WordMetaImportStats> {
+    const chunkSize = 250;
+    let created = 0;
+    let updated = 0;
+    const importBatchId = rows[0]?.importBatchId ?? "";
+
+    for (let index = 0; index < rows.length; index += chunkSize) {
+      const chunk = rows.slice(index, index + chunkSize);
+      const existing = await this.db
+        .select({ normalizedWord: wordMeta.normalizedWord, source: wordMeta.source })
+        .from(wordMeta)
+        .where(inArray(wordMeta.normalizedWord, chunk.map((row) => row.normalizedWord)));
+      const existingKeys = new Set(existing.map((row) => `${row.source}:${row.normalizedWord}`));
+      created += chunk.filter((row) => !existingKeys.has(`${row.source}:${row.normalizedWord}`)).length;
+      updated += chunk.filter((row) => existingKeys.has(`${row.source}:${row.normalizedWord}`)).length;
+      const now = this.now();
+
+      await this.db
+        .insert(wordMeta)
+        .values(
+          chunk.map((row) => ({
+            ...row,
+            createdAt: now,
+            id: this.nextId(),
+            updatedAt: now,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [wordMeta.source, wordMeta.normalizedWord],
+          set: {
+            derivedFields: sql`excluded.derived_fields`,
+            importBatchId: sql`excluded.import_batch_id`,
+            licenseName: sql`excluded.license_name`,
+            licenseUrl: sql`excluded.license_url`,
+            meanings: sql`excluded.meanings`,
+            phonetics: sql`excluded.phonetics`,
+            rawPayload: sql`excluded.raw_payload`,
+            sourceUrl: sql`excluded.source_url`,
+            updatedAt: now,
+            word: sql`excluded.word`,
+            wordId: sql`COALESCE(excluded.word_id, ${wordMeta.wordId})`,
+          },
+        });
+    }
+
+    return { created, importBatchId, total: rows.length, updated };
+  }
+
+  async linkMetaToWords(normalizedWords: string[]): Promise<number> {
+    if (normalizedWords.length === 0) {
+      return 0;
+    }
+    const existingWords = await this.db
+      .select({ id: wordEntries.id, lemma: wordEntries.lemma })
+      .from(wordEntries)
+      .where(inArray(wordEntries.lemma, normalizedWords));
+    const byLemma = new Map(existingWords.map((row) => [row.lemma, row.id]));
+    let linked = 0;
+    for (const [lemma, wordId] of byLemma) {
+      const result = await this.db.update(wordMeta).set({ wordId, updatedAt: this.now() }).where(eq(wordMeta.normalizedWord, lemma)).returning({ id: wordMeta.id });
+      linked += result.length;
+    }
+    return linked;
+  }
 }

@@ -11,6 +11,7 @@
     "test:unit": "vitest run src/**/*.test.ts",
     "test:integration": "tsx src/scripts/smokeDatabase.ts",
     "db:provision": "tsx src/scripts/provisionDatabase.ts",
+    "word-meta:import": "tsx src/scripts/importDictionaryApiWordMeta.ts",
     "db:reset:local": "tsx src/scripts/resetLocalDatabase.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"

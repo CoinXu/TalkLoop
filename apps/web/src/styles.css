@@ -1,5 +1,5 @@
 html {
-  background: #f6f7f9;
+  background: #f3f5f7;
 }
 
 body {
@@ -12,15 +12,18 @@ audio {
 
 .appShell {
   min-height: 100vh;
-  background: #f6f7f9;
+  background: #f3f5f7;
 }
 
 .topBar {
   align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #dce2ea;
   display: flex;
   gap: 16px;
   justify-content: space-between;
   min-height: 72px;
+  padding-inline: 18px;
 }
 
 .workspace {
@@ -34,9 +37,14 @@ audio {
 }
 
 .primaryPanel {
-  border: 1px solid #e1e5ec;
+  border: 1px solid #dce2ea;
+  border-radius: 6px;
   box-shadow: none;
   flex: 1;
+}
+
+.primaryPanel .MuiCardContent-root {
+  padding: 14px;
 }
 
 .friendlyOptions {
@@ -44,19 +52,20 @@ audio {
 }
 
 .metricBox {
-  background: #eef2f7;
-  border-radius: 8px;
+  background: #eef3f6;
+  border: 1px solid #d9e2ea;
+  border-radius: 6px;
   flex: 1;
-  padding: 16px;
+  padding: 12px;
 }
 
 .adminLayout {
   display: grid;
-  gap: 18px;
-  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 14px;
+  grid-template-columns: 288px minmax(0, 1fr);
   margin: 0 auto;
-  max-width: 1280px;
-  padding: 18px;
+  max-width: 1480px;
+  padding: 14px;
 }
 
 .adminNav,
@@ -107,8 +116,108 @@ audio {
 
 .adminNav {
   align-self: start;
+  background: #ffffff;
+  border: 1px solid #dce2ea;
+  border-radius: 6px;
+  padding: 12px;
   position: sticky;
   top: 90px;
+}
+
+.adminNavTitle {
+  border-bottom: 1px solid #e4e9ef;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.adminNavTitle .MuiTypography-overline {
+  color: #1f2937;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.adminNavSection {
+  margin-top: 12px;
+}
+
+.adminNavSectionTitle {
+  color: #64748b;
+  display: block;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 6px 4px;
+}
+
+.adminNavButton {
+  border-radius: 5px;
+  color: #334155;
+  justify-content: flex-start;
+  min-height: 48px;
+  padding: 7px 9px;
+  text-align: left;
+  text-transform: none;
+}
+
+.adminNavButton:hover {
+  background: #edf2f5;
+}
+
+.adminNavButton.isActive {
+  background: #dfe8ee;
+  color: #0f172a;
+}
+
+.adminNavButtonText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.adminNavButtonText span:first-child {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.adminNavButtonText span:last-child {
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 220px;
+}
+
+.adminPageHeader {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dce2ea;
+  border-radius: 6px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 13px 14px;
+}
+
+.adminPageHeader .MuiTypography-h5 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.adminContent .MuiTableCell-root {
+  border-bottom-color: #e5ebf0;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.adminContent .MuiTableHead-root .MuiTableCell-root {
+  background: #f6f8fa;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .loginPanel {
@@ -137,17 +246,42 @@ audio {
 }
 
 .filterGrid,
-.createFromSourceGrid {
+.createFromSourceGrid,
+.sentenceFilterGrid {
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   margin-top: 14px;
 }
 
 .importControlGrid .MuiButton-root {
   min-height: 34px;
   white-space: nowrap;
+}
+
+.sentenceFilterGrid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 10px;
+}
+
+.adminHelpGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 12px;
+}
+
+.adminContent .MuiFormControl-root {
+  min-width: 220px;
+}
+
+.adminContent .MuiSelect-select {
+  min-width: 170px;
+}
+
+.taskTransitionPanel {
+  min-height: 280px;
 }
 
 .noWrapControl {
@@ -206,6 +340,121 @@ audio {
   overflow-wrap: anywhere;
 }
 
+.dictionaryEntry {
+  background: #ffffff;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dictionaryHero {
+  align-items: flex-start;
+  background: #f7fbff;
+  border-bottom: 1px solid #d8e2ef;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.dictionaryWord {
+  color: #17324d;
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.phoneticChip {
+  background: #e7f0fa;
+  color: #1d4f7a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.dictionaryBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+}
+
+.dictionaryBody.singleColumn {
+  display: block;
+}
+
+.dictionaryMain {
+  padding: 20px;
+}
+
+.dictionaryAside {
+  background: #f8fafc;
+  border-left: 1px solid #e2e8f0;
+  padding: 20px;
+}
+
+.dictionaryMeaning + .dictionaryMeaning {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.partOfSpeech {
+  color: #1f6b94;
+  font-size: 1.1rem;
+  font-style: italic;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.definitionBlock {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.definitionNumber {
+  color: #64748b;
+  font-weight: 700;
+  text-align: right;
+}
+
+.exampleSentence {
+  border-left: 3px solid #b7d4ef;
+  color: #475569;
+  font-style: italic;
+  margin-top: 6px;
+  padding-left: 10px;
+}
+
+.phoneticRow {
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+
+.pronunciationPlayer audio {
+  height: 34px;
+  max-width: 220px;
+  width: 220px;
+}
+
+.pronunciationPlayer.isCompact audio {
+  max-width: 150px;
+  width: 150px;
+}
+
+.adminMetricGrid,
+.compositionGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.compositionGrid {
+  grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.1fr);
+}
+
 .jsonResult pre {
   margin: 8px 0 0;
   overflow-x: auto;
@@ -226,6 +475,15 @@ audio {
     position: static;
   }
 
+  .adminPageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .adminNavButtonText span:last-child {
+    width: auto;
+  }
+
   .wordFormGrid {
     grid-template-columns: 1fr;
   }
@@ -236,8 +494,29 @@ audio {
 
   .filterGrid,
   .createFromSourceGrid,
-  .resultMetricGrid {
+  .sentenceFilterGrid,
+  .resultMetricGrid,
+  .adminMetricGrid,
+  .adminHelpGrid,
+  .compositionGrid {
     grid-template-columns: 1fr;
+  }
+
+  .dictionaryHero {
+    flex-direction: column;
+  }
+
+  .dictionaryWord {
+    font-size: 2rem;
+  }
+
+  .dictionaryBody {
+    grid-template-columns: 1fr;
+  }
+
+  .dictionaryAside {
+    border-left: 0;
+    border-top: 1px solid #e2e8f0;
   }
 
   .paginationControls {

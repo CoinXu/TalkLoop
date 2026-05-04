@@ -17,7 +17,7 @@ export class SnowflakeIdGenerator {
     let timestampMs = this.currentTimestampMs();
 
     if (timestampMs < this.lastTimestampMs) {
-      throw new Error("System clock moved backwards");
+      timestampMs = this.waitNextMillis(this.lastTimestampMs);
     }
 
     if (timestampMs === this.lastTimestampMs) {

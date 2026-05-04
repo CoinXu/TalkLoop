@@ -53,6 +53,8 @@ async function runMigration(): Promise<void> {
     await applyMigrationIfMissing(client, "word_entries", "0003_learning_activation_v1_word_library.sql");
     await applyMigrationIfMissing(client, "corpus_scenes", "0004_learning_activation_v1_runtime_modules.sql");
     await applyMigrationIfMissing(client, "subtlexus_words", "0005_subtlexus_source_words.sql");
+    await applyMigrationIfMissing(client, "content_admin_settings", "0006_content_admin_console_v1.sql");
+    await applyMigrationIfMissing(client, "word_meta", "0007_word_meta_dictionaryapi.sql");
     await seedBootstrapAdminIfRequested(client);
   } finally {
     await client.end();

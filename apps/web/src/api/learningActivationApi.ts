@@ -12,6 +12,7 @@ import type {
   SubtlexusWord,
   VocabularyOverview,
   WordEntry,
+  WordMeta,
 } from "../types";
 
 const defaultListQuery = "?limit=10&offset=0";
@@ -50,6 +51,8 @@ export const learningApi = {
     requestJson<ListResponse<JsonRecord>>(`/learning/vocabulary/words${status ? `?status=${encodeURIComponent(status)}` : ""}`, {
       requireSession: true,
     }),
+  wordMeta: (query?: Record<string, QueryValue>) =>
+    requestJson<ListResponse<WordMeta>>(withQuery("/word-library/word-meta", { limit: 10, offset: 0, ...query })),
   words: () => requestJson<ListResponse<WordEntry>>(`/word-library/words${defaultListQuery}`),
 };
 
@@ -57,6 +60,41 @@ export const adminApi = {
   accounts: () => requestJson<ListResponse<JsonRecord>>(`/admin/accounts${defaultListQuery}`, { requireAdmin: true }),
   auditLogs: () => requestJson<ListResponse<JsonRecord>>(`/admin/audit-logs${defaultListQuery}`, { requireAdmin: true }),
   courseReports: () => requestJson<ListResponse<JsonRecord>>(`/admin/course-reports${defaultListQuery}`, { requireAdmin: true }),
+  contentBatchStatus: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/status/batch", { body, method: "POST", requireAdmin: true }),
+  contentConfirmImport: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/imports/confirm", { body, method: "POST", requireAdmin: true }),
+  contentCourses: (query?: Record<string, QueryValue>) =>
+    requestJson<ListResponse<JsonRecord>>(withQuery("/admin/content/courses", { limit: 100, offset: 0, ...query }), { requireAdmin: true }),
+  contentCreateCourse: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/courses", { body, method: "POST", requireAdmin: true }),
+  contentCreateScene: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/scenes", { body, method: "POST", requireAdmin: true }),
+  contentCreateSentence: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/sentences", { body, method: "POST", requireAdmin: true }),
+  contentDefaultAudio: () => requestJson<JsonRecord>("/admin/content/audio/default", { requireAdmin: true }),
+  contentPublish: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/publishing/publish", { body, method: "POST", requireAdmin: true }),
+  contentPublishingValidation: () => requestJson<JsonRecord>("/admin/content/publishing/validation", { requireAdmin: true }),
+  contentSaveComposition: (courseId: string, body: JsonRecord) =>
+    requestJson<JsonRecord>(`/admin/content/courses/${courseId}/composition`, { body, method: "POST", requireAdmin: true }),
+  contentScenes: (query?: Record<string, QueryValue>) =>
+    requestJson<ListResponse<JsonRecord>>(withQuery("/admin/content/scenes", { limit: 100, offset: 0, ...query }), { requireAdmin: true }),
+  contentSentences: (query?: Record<string, QueryValue>) =>
+    requestJson<ListResponse<JsonRecord>>(withQuery("/admin/content/sentences", { limit: 100, offset: 0, ...query }), {
+      requireAdmin: true,
+    }),
+  contentSummary: () => requestJson<JsonRecord>("/admin/content/summary", { requireAdmin: true }),
+  contentUpdateCourse: (courseId: string, body: JsonRecord) =>
+    requestJson<JsonRecord>(`/admin/content/courses/${courseId}`, { body, method: "PATCH", requireAdmin: true }),
+  contentUpdateDefaultAudio: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/audio/default", { body, method: "PUT", requireAdmin: true }),
+  contentUpdateScene: (sceneId: string, body: JsonRecord) =>
+    requestJson<JsonRecord>(`/admin/content/scenes/${sceneId}`, { body, method: "PATCH", requireAdmin: true }),
+  contentUpdateSentence: (sentenceId: string, body: JsonRecord) =>
+    requestJson<JsonRecord>(`/admin/content/sentences/${sentenceId}`, { body, method: "PATCH", requireAdmin: true }),
+  contentValidateImport: (body: JsonRecord) =>
+    requestJson<JsonRecord>("/admin/content/imports/validate", { body, method: "POST", requireAdmin: true }),
   courses: () => requestJson<ListResponse<Course>>(`/admin/corpus/courses${defaultListQuery}`, { requireAdmin: true }),
   createAccount: (body: JsonRecord) => requestJson<JsonRecord>("/admin/accounts", { body, method: "POST", requireAdmin: true }),
   createAnnotationTask: (body: JsonRecord) =>
@@ -106,6 +144,12 @@ export const adminApi = {
     requestJson<ListResponse<SubtlexusWord>>(withQuery("/admin/word-library/subtlexus-words", { limit: 10, offset: 0, ...query }), {
       requireAdmin: true,
     }),
+  wordMeta: (query?: Record<string, QueryValue>) =>
+    requestJson<ListResponse<WordMeta>>(withQuery("/admin/word-library/word-meta", { limit: 10, offset: 0, ...query }), {
+      requireAdmin: true,
+    }),
+  applyWordMeta: (wordMetaId: string, body: JsonRecord) =>
+    requestJson<WordEntry>(`/admin/word-library/word-meta/${wordMetaId}/apply`, { body, method: "POST", requireAdmin: true }),
   updateWord: (wordId: string, body: JsonRecord) =>
     requestJson<WordEntry>(`/admin/word-library/words/${wordId}`, { body, method: "PATCH", requireAdmin: true }),
   userVocabulary: () => requestJson<ListResponse<JsonRecord>>(`/admin/user-vocabulary/words${defaultListQuery}`, { requireAdmin: true }),

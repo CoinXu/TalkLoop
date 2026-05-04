@@ -45,8 +45,10 @@ export class LearningActivationService {
     const row = await this.repository.createScene({
       description: stringOrNull(input.description),
       name: requiredString(input.name, "name"),
-      publishStatus: enumValue(input.publishStatus, ["draft", "published", "archived"], "draft"),
+      publishStatus: enumValue(input.publishStatus, ["draft", "published", "unpublished", "archived"], "draft"),
+      slug: slugValue(input.slug, requiredString(input.name, "name")),
       sortOrder: numberValue(input.sortOrder, 0),
+      updatedByAdminId: admin.adminUserId,
     });
     await this.audit(admin, "admin.corpus.write", "scene_create", "scene", row.id, undefined, this.scene(row), stringOrUndefined(input.reason));
     return this.scene(row);
@@ -57,8 +59,10 @@ export class LearningActivationService {
     const patch = pickDefined({
       description: nullableString(input.description),
       name: optionalString(input.name),
-      publishStatus: optionalEnum(input.publishStatus, ["draft", "published", "archived"]),
+      publishStatus: optionalEnum(input.publishStatus, ["draft", "published", "unpublished", "archived"]),
+      slug: input.slug === undefined ? undefined : slugValue(input.slug, String(input.name ?? "scene")),
       sortOrder: optionalNumber(input.sortOrder),
+      updatedByAdminId: admin.adminUserId,
     });
     const result = await this.repository.updateScene(id, patch as Parameters<LearningActivationRepository["updateScene"]>[1]);
     if (!result?.after) throw new AppError("not_found", "Scene not found");
@@ -76,11 +80,16 @@ export class LearningActivationService {
     const row = await this.repository.createCourse({
       description: stringOrNull(input.description),
       level: numberValue(input.level, 1),
-      publishStatus: enumValue(input.publishStatus, ["draft", "published", "archived"], "draft"),
+      maxSentenceCount: numberValue(input.maxSentenceCount, 12),
+      minSentenceCount: numberValue(input.minSentenceCount, 8),
+      needsRevalidation: false,
+      publishStatus: enumValue(input.publishStatus, ["draft", "published", "unpublished", "archived"], "draft"),
       sceneId: EntityIdCodec.parse(requiredString(input.sceneId, "sceneId")),
+      slug: slugValue(input.slug, requiredString(input.title, "title")),
       sortOrder: numberValue(input.sortOrder, 0),
       title: requiredString(input.title, "title"),
       unlockPolicy: recordValue(input.unlockPolicy, { type: "previous_course_completed" }),
+      updatedByAdminId: admin.adminUserId,
     });
     await this.audit(admin, "admin.corpus.write", "course_create", "course", row.id, undefined, await this.courseWithValidation(row), stringOrUndefined(input.reason));
     return this.courseWithValidation(row);
@@ -92,11 +101,16 @@ export class LearningActivationService {
     const patch = pickDefined({
       description: nullableString(input.description),
       level: optionalNumber(input.level),
-      publishStatus: optionalEnum(input.publishStatus, ["draft", "published", "archived"]),
+      maxSentenceCount: optionalNumber(input.maxSentenceCount),
+      minSentenceCount: optionalNumber(input.minSentenceCount),
+      needsRevalidation: true,
+      publishStatus: optionalEnum(input.publishStatus, ["draft", "published", "unpublished", "archived"]),
       sceneId: input.sceneId === undefined ? undefined : EntityIdCodec.parse(requiredString(input.sceneId, "sceneId")),
+      slug: input.slug === undefined ? undefined : slugValue(input.slug, String(input.title ?? "course")),
       sortOrder: optionalNumber(input.sortOrder),
       title: optionalString(input.title),
       unlockPolicy: optionalRecord(input.unlockPolicy),
+      updatedByAdminId: admin.adminUserId,
     });
     const result = await this.repository.updateCourse(id, patch as Parameters<LearningActivationRepository["updateCourse"]>[1]);
     if (!result?.after) throw new AppError("not_found", "Course not found");
@@ -112,13 +126,14 @@ export class LearningActivationService {
   async adminCreateSentence(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
     this.adminService.assertPermission(admin, "admin.corpus.write");
     const row = await this.repository.createSentence({
-      audioStatus: enumValue(input.audioStatus, ["missing", "ready", "failed"], "missing"),
+      audioStatus: enumValue(input.audioStatus, ["missing", "ready", "failed", "default", "unreachable"], "missing"),
       bonusWords: stringArray(input.bonusWords),
       courseId: input.courseId ? EntityIdCodec.parse(requiredString(input.courseId, "courseId")) : null,
       difficultyLevel: numberValue(input.difficultyLevel, 1),
       normalAudioUrl: stringOrNull(input.normalAudioUrl),
       phraseChunks: stringArray(input.phraseChunks),
-      publishStatus: enumValue(input.publishStatus, ["draft", "published", "archived"], "draft"),
+      importBatchId: stringOrNull(input.importBatchId),
+      publishStatus: enumValue(input.publishStatus, ["draft", "published", "unpublished", "archived"], "draft"),
       reviewStatus: enumValue(input.reviewStatus, ["pending_review", "approved", "rejected"], "pending_review"),
       sceneId: input.sceneId ? EntityIdCodec.parse(requiredString(input.sceneId, "sceneId")) : null,
       sceneTags: stringArray(input.sceneTags),
@@ -127,6 +142,7 @@ export class LearningActivationService {
       sortOrder: numberValue(input.sortOrder, 0),
       targetWords: stringArray(input.targetWords),
       translationCn: stringOrNull(input.translationCn),
+      updatedByAdminId: admin.adminUserId,
     });
     await this.audit(admin, "admin.corpus.write", "sentence_create", "sentence", row.id, undefined, this.sentence(row), stringOrUndefined(input.reason));
     return this.sentence(row);
@@ -135,13 +151,14 @@ export class LearningActivationService {
   async adminUpdateSentence(admin: CurrentAdmin, id: EntityId, input: JsonRecord): Promise<JsonRecord> {
     this.adminService.assertPermission(admin, "admin.corpus.write");
     const patch = pickDefined({
-      audioStatus: optionalEnum(input.audioStatus, ["missing", "ready", "failed"]),
+      audioStatus: optionalEnum(input.audioStatus, ["missing", "ready", "failed", "default", "unreachable"]),
       bonusWords: optionalStringArray(input.bonusWords),
       courseId: input.courseId === undefined ? undefined : EntityIdCodec.parse(requiredString(input.courseId, "courseId")),
       difficultyLevel: optionalNumber(input.difficultyLevel),
+      importBatchId: nullableString(input.importBatchId),
       normalAudioUrl: nullableString(input.normalAudioUrl),
       phraseChunks: optionalStringArray(input.phraseChunks),
-      publishStatus: optionalEnum(input.publishStatus, ["draft", "published", "archived"]),
+      publishStatus: optionalEnum(input.publishStatus, ["draft", "published", "unpublished", "archived"]),
       reviewStatus: optionalEnum(input.reviewStatus, ["pending_review", "approved", "rejected"]),
       sceneId: input.sceneId === undefined ? undefined : EntityIdCodec.parse(requiredString(input.sceneId, "sceneId")),
       sceneTags: optionalStringArray(input.sceneTags),
@@ -150,6 +167,7 @@ export class LearningActivationService {
       sortOrder: optionalNumber(input.sortOrder),
       targetWords: optionalStringArray(input.targetWords),
       translationCn: nullableString(input.translationCn),
+      updatedByAdminId: admin.adminUserId,
     });
     const result = await this.repository.updateSentence(id, patch as Parameters<LearningActivationRepository["updateSentence"]>[1]);
     if (!result?.after) throw new AppError("not_found", "Sentence not found");
@@ -737,4 +755,10 @@ function tryParseEntityId(value: string): EntityId | null {
   } catch {
     return null;
   }
+}
+
+function slugValue(value: unknown, fallback: string): string {
+  const source = typeof value === "string" && value.length > 0 ? value : fallback;
+  const slug = source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return slug || "content";
 }

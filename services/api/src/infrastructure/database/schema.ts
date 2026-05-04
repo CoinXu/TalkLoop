@@ -133,6 +133,31 @@ export const wordEntries = pgTable(
   }),
 );
 
+export const wordMeta = pgTable(
+  "word_meta",
+  {
+    ...baseColumns(),
+    wordId: pgBigint("word_id", { mode: "bigint" }).references(() => wordEntries.id),
+    word: text("word").notNull(),
+    normalizedWord: text("normalized_word").notNull(),
+    source: text("source").notNull(),
+    sourceUrl: text("source_url"),
+    licenseName: text("license_name"),
+    licenseUrl: text("license_url"),
+    phonetics: jsonb("phonetics").$type<Record<string, unknown>[]>().notNull().default([]),
+    meanings: jsonb("meanings").$type<Record<string, unknown>[]>().notNull().default([]),
+    rawPayload: jsonb("raw_payload").$type<Record<string, unknown>>().notNull().default({}),
+    derivedFields: jsonb("derived_fields").$type<Record<string, unknown>>().notNull().default({}),
+    importBatchId: text("import_batch_id"),
+  },
+  (table) => ({
+    importBatchIdx: index("word_meta_import_batch_idx").on(table.importBatchId),
+    sourceNormalizedWordIdx: uniqueIndex("word_meta_source_normalized_word_idx").on(table.source, table.normalizedWord),
+    wordIdIdx: index("word_meta_word_id_idx").on(table.wordId),
+    wordIdx: index("word_meta_word_idx").on(table.word),
+  }),
+);
+
 export const subtlexusWords = pgTable(
   "subtlexus_words",
   {
@@ -163,12 +188,15 @@ export const corpusScenes = pgTable(
   {
     ...baseColumns(),
     name: text("name").notNull(),
+    slug: text("slug").notNull(),
     description: text("description"),
     sortOrder: integer("sort_order").notNull().default(0),
     publishStatus: text("publish_status").notNull().default("draft"),
+    updatedByAdminId: pgBigint("updated_by_admin_id", { mode: "bigint" }).references(() => adminUsers.id),
   },
   (table) => ({
     nameIdx: uniqueIndex("corpus_scenes_name_idx").on(table.name),
+    slugIdx: uniqueIndex("corpus_scenes_slug_idx").on(table.slug),
     publishIdx: index("corpus_scenes_publish_idx").on(table.publishStatus, table.sortOrder),
   }),
 );
@@ -179,14 +207,20 @@ export const courses = pgTable(
     ...baseColumns(),
     sceneId: pgBigint("scene_id", { mode: "bigint" }).notNull().references(() => corpusScenes.id),
     title: text("title").notNull(),
+    slug: text("slug").notNull(),
     description: text("description"),
     level: integer("level").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
+    minSentenceCount: integer("min_sentence_count").notNull().default(8),
+    maxSentenceCount: integer("max_sentence_count").notNull().default(12),
     unlockPolicy: jsonb("unlock_policy").$type<Record<string, unknown>>().notNull().default({ type: "previous_course_completed" }),
     publishStatus: text("publish_status").notNull().default("draft"),
+    needsRevalidation: boolean("needs_revalidation").notNull().default(false),
+    updatedByAdminId: pgBigint("updated_by_admin_id", { mode: "bigint" }).references(() => adminUsers.id),
   },
   (table) => ({
     sceneIdx: index("courses_scene_idx").on(table.sceneId, table.sortOrder),
+    sceneSlugIdx: uniqueIndex("courses_scene_slug_idx").on(table.sceneId, table.slug),
     publishIdx: index("courses_publish_idx").on(table.publishStatus, table.level),
   }),
 );
@@ -210,10 +244,26 @@ export const corpusSentences = pgTable(
     sortOrder: integer("sort_order").notNull().default(0),
     reviewStatus: text("review_status").notNull().default("pending_review"),
     publishStatus: text("publish_status").notNull().default("draft"),
+    importBatchId: text("import_batch_id"),
+    updatedByAdminId: pgBigint("updated_by_admin_id", { mode: "bigint" }).references(() => adminUsers.id),
   },
   (table) => ({
     courseIdx: index("corpus_sentences_course_idx").on(table.courseId, table.sortOrder),
     publishIdx: index("corpus_sentences_publish_idx").on(table.publishStatus, table.reviewStatus, table.difficultyLevel),
+    assignmentIdx: index("corpus_sentences_assignment_idx").on(table.sceneId, table.courseId, table.sortOrder),
+    importBatchIdx: index("corpus_sentences_import_batch_idx").on(table.importBatchId),
+  }),
+);
+
+export const contentAdminSettings = pgTable(
+  "content_admin_settings",
+  {
+    ...baseColumns(),
+    settingKey: text("setting_key").notNull(),
+    settingValue: jsonb("setting_value").$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (table) => ({
+    keyIdx: uniqueIndex("content_admin_settings_key_idx").on(table.settingKey),
   }),
 );
 
