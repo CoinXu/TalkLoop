@@ -54,6 +54,8 @@ import { clearAdminSession, loadAdminSession, saveAdminSession } from "./session
 import { clearSession, loadSession, saveSession } from "./session/sessionStore";
 import type {
   AdminSession,
+  ContinueLearningItem,
+  ContinueLearningResponse,
   Course,
   DailyTask,
   JsonRecord,
@@ -65,6 +67,7 @@ import type {
   UserSession,
   VocabularyOverview,
   WordEntry,
+  WordSense,
   WordMeta,
 } from "./types";
 
@@ -122,7 +125,6 @@ const adminModules: AdminModuleMeta[] = [
   { category: "内容生产", icon: <LibraryBooksIcon />, key: "content", label: "场景 / 课程", summary: "场景与课程一体管理，课程可直接关联句子" },
   { category: "内容生产", icon: <SpellcheckIcon />, key: "sentences", label: "句子池", summary: "筛选、详情、音频状态和引用信息" },
   { category: "内容生产", icon: <UploadFileIcon />, key: "imports", label: "批量导入", summary: "CSV/JSON 上传、映射、预校验和结果" },
-  { category: "内容生产", icon: <RepeatIcon />, key: "composition", label: "课程编排", summary: "左侧句子池、右侧课程句子排序" },
   { category: "内容生产", icon: <FlagIcon />, key: "publishing", label: "发布校验", summary: "状态流转、阻断项和默认音频提示" },
   { category: "词库", icon: <SpellcheckIcon />, key: "word-library", label: "词频 / 单词", summary: "SUBTLEXus 词频导入、词条筛选、单词新建和批量发布" },
 ];
@@ -148,8 +150,6 @@ type WordFormState = {
   lg10wf: string;
   meaningCn: string;
   meaningDistractors: string;
-  meaningEn: string;
-  partOfSpeech: string;
   phonetic: string;
   pronunciationDistractors: string;
   publishStatus: "draft" | "published" | "archived";
@@ -233,8 +233,6 @@ const emptyWordForm: WordFormState = {
   lg10wf: "",
   meaningCn: "",
   meaningDistractors: "",
-  meaningEn: "",
-  partOfSpeech: "",
   phonetic: "",
   pronunciationDistractors: "",
   publishStatus: "draft",
@@ -405,6 +403,7 @@ function LearningWorkspace({
 }): JSX.Element {
   const [overview, setOverview] = useState<VocabularyOverview | null>(null);
   const [dailyTask, setDailyTask] = useState<DailyTask | null>(null);
+  const [continueLearning, setContinueLearning] = useState<ContinueLearningResponse | null>(null);
   const [words, setWords] = useState<WordEntry[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [sentences, setSentences] = useState<Sentence[]>([]);
@@ -415,23 +414,52 @@ function LearningWorkspace({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const mergeVocabularyWords = useCallback((records: JsonRecord[]): void => {
+    const hydratedWords = records.map(wordEntryFromVocabularyRecord).filter((word): word is WordEntry => Boolean(word));
+    if (hydratedWords.length === 0) return;
+    setWords((current) => {
+      const existingIds = new Set(current.map((word) => word.wordId));
+      const additions = hydratedWords.filter((word) => !existingIds.has(word.wordId));
+      return additions.length > 0 ? [...current, ...additions] : current;
+    });
+  }, []);
+
+  const hydrateDailyTaskWords = useCallback(async (task: DailyTask): Promise<void> => {
+    const wordIds = [...new Set((task.items ?? []).map((item) => stringRecordValue(item, "wordId")).filter(Boolean))];
+    if (wordIds.length === 0) return;
+    const responses = await Promise.all(
+      wordIds.map(async (wordId) => {
+        try {
+          return await learningApi.vocabularyWords({ limit: 1, offset: 0, wordId });
+        } catch {
+          return { items: [] };
+        }
+      }),
+    );
+    mergeVocabularyWords(responses.flatMap((response) => response.items));
+  }, [mergeVocabularyWords]);
+
   const loadUserPlan = useCallback(async (): Promise<{ overview: VocabularyOverview; task: DailyTask | null }> => {
     const nextOverview = await learningApi.vocabulary();
     setOverview(nextOverview);
     if (nextOverview.total <= 0) {
       setDailyTask(null);
+      setContinueLearning(null);
       return { overview: nextOverview, task: null };
     }
     try {
       const nextTask = await learningApi.dailyTask();
       setDailyTask(nextTask);
+      setContinueLearning(null);
+      await hydrateDailyTaskWords(nextTask);
       return { overview: nextOverview, task: nextTask };
     } catch (caught) {
       setDailyTask(null);
+      setContinueLearning(null);
       setDataWarning((current) => [current, `今日任务接口暂不可用：${readableError(caught)}`].filter(Boolean).join("；"));
       return { overview: nextOverview, task: null };
     }
-  }, []);
+  }, [hydrateDailyTaskWords]);
 
   const loadLearning = useCallback(async () => {
     setLoading(true);
@@ -566,6 +594,46 @@ function LearningWorkspace({
     }
   }
 
+  async function loadContinueLearning(): Promise<ContinueLearningResponse> {
+    ensureUserSession();
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await learningApi.continueLearning({ limit: 6 });
+      setContinueLearning(response);
+      mergeVocabularyWords(response.items);
+      return response;
+    } catch (caught) {
+      setError(readableError(caught));
+      throw caught;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function practiceContinueLearningItem(item: ContinueLearningItem, result: PracticeResult): Promise<void> {
+    ensureUserSession();
+    setLoading(true);
+    setError(null);
+    try {
+      await learningApi.activationAttempt({
+        correctAnswer: result.correctAnswer ?? null,
+        isCorrect: result.isCorrect,
+        practiceType: item.practiceType,
+        replayCount: 1,
+        result: { prioritySource: item.prioritySource, source: "continue_learning" },
+        selectedAnswer: result.selectedAnswer ?? null,
+        wordId: item.wordId,
+      });
+      setOverview(await learningApi.vocabulary());
+    } catch (caught) {
+      setError(readableError(caught));
+      throw caught;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function submitPractice(sentence: Sentence): Promise<void> {
     ensureUserSession();
     setLoading(true);
@@ -601,6 +669,9 @@ function LearningWorkspace({
         <TodayPanel
           dailyTask={dailyTask}
           disabled={loading}
+          continueLearning={continueLearning}
+          onContinueLearning={loadContinueLearning}
+          onPracticeContinueLearning={practiceContinueLearningItem}
           onPracticeTask={practiceDailyTaskItem}
           onResetDailyTask={resetDailyTask}
           onResetUserSession={onResetUserSession}
@@ -622,7 +693,7 @@ function LearningWorkspace({
       ) : null}
       {tab === "dictionary" ? <DictionaryPanel /> : null}
       {tab === "library" ? <VocabularyPanel overview={overview} words={words} /> : null}
-      {tab === "courses" ? <CoursePanel courses={courses} scenes={[]} sentences={sentences} /> : null}
+      {tab === "courses" ? <CoursePanel courses={courses} disabled={loading} ensureUserSession={ensureUserSession} scenes={[]} sentences={sentences} /> : null}
       {tab === "listen" ? <ListenPanel onSubmit={submitPractice} sentences={sentences} /> : null}
       {tab === "report" ? <ReportPanel courses={courses} overview={overview} /> : null}
       {tab === "profile" ? <ProfilePanel ensureUserSession={ensureUserSession} onResetUserSession={onResetUserSession} userSession={userSession} /> : null}
@@ -703,7 +774,7 @@ function VocabularyPanel({ overview, words }: { overview: VocabularyOverview | n
           <List dense>
             {words.slice(0, 10).map((word) => (
               <ListItem key={word.wordId}>
-                <ListItemText primary={`${word.word} ${word.phonetic ?? ""}`} secondary={word.meaningCn ?? word.meaningEn ?? "待补全释义"} />
+                <ListItemText primary={`${word.word} ${word.phonetic ?? ""}`} secondary={wordEntryMeaningText(word) || "待补全释义"} />
               </ListItem>
             ))}
           </List>
@@ -781,7 +852,7 @@ function DictionaryPanel(): JSX.Element {
       {selected ? (
         <Card className="primaryPanel">
           <CardContent>
-            <WordMetaDetail meta={selected} />
+            <WordMetaDetail meta={selected} oneDefinitionPerPartOfSpeech />
           </CardContent>
         </Card>
       ) : rows.length === 0 && !loading ? (
@@ -791,7 +862,170 @@ function DictionaryPanel(): JSX.Element {
   );
 }
 
-function CoursePanel({ courses, scenes, sentences }: { courses: Course[]; scenes: Scene[]; sentences: Sentence[] }): JSX.Element {
+function CoursePanel({
+  courses,
+  disabled,
+  ensureUserSession,
+  scenes,
+  sentences,
+}: {
+  courses: Course[];
+  disabled: boolean;
+  ensureUserSession: () => UserSession;
+  scenes: Scene[];
+  sentences: Sentence[];
+}): JSX.Element {
+  const [activeCourse, setActiveCourse] = useState<Course | null>(null);
+  const [courseSentences, setCourseSentences] = useState<Sentence[]>([]);
+  const [completedSentenceIds, setCompletedSentenceIds] = useState<Set<string>>(() => new Set());
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loadingCourse, setLoadingCourse] = useState(false);
+  const [courseError, setCourseError] = useState<string | null>(null);
+  const [report, setReport] = useState<JsonRecord | null>(null);
+  const currentSentence = courseSentences[currentIndex];
+  const completedCount = completedSentenceIds.size;
+  const courseProgress = courseSentences.length > 0 ? Math.round((completedCount / courseSentences.length) * 100) : 0;
+
+  async function startCourse(course: Course): Promise<void> {
+    if (course.unlocked === false) {
+      setCourseError(course.lockReason ?? "该课程暂未解锁。");
+      return;
+    }
+    ensureUserSession();
+    setLoadingCourse(true);
+    setCourseError(null);
+    setReport(null);
+    setCompletedSentenceIds(new Set());
+    setCurrentIndex(0);
+    try {
+      const response = await learningApi.sentences(course.courseId);
+      const nextSentences = response.items;
+      setActiveCourse(course);
+      setCourseSentences(nextSentences);
+      if (nextSentences.length === 0) setCourseError("该课程暂时没有可练习句子。");
+    } catch (caught) {
+      setCourseError(readableError(caught));
+    } finally {
+      setLoadingCourse(false);
+    }
+  }
+
+  async function completeCurrentSentence(): Promise<void> {
+    if (!activeCourse || !currentSentence) return;
+    ensureUserSession();
+    setLoadingCourse(true);
+    setCourseError(null);
+    try {
+      await learningApi.listenRepeatAttempt({
+        mode: "A",
+        originalAudioDurationMs: null,
+        recordingDurationMs: null,
+        sentenceId: currentSentence.sentenceId,
+        targetWordHits: currentSentence.targetWords ?? [],
+        textMatchRate: 1,
+        transcript: currentSentence.sentenceText,
+      });
+      const nextCompleted = new Set(completedSentenceIds).add(currentSentence.sentenceId);
+      setCompletedSentenceIds(nextCompleted);
+      if (nextCompleted.size >= courseSentences.length) {
+        const nextReport = await learningApi.courseReport({
+          averageAccuracy: 1,
+          averageSpeedRatio: 1,
+          bestSentenceId: courseSentences[0]?.sentenceId ?? null,
+          courseId: activeCourse.courseId,
+          practicedSentenceCount: nextCompleted.size,
+          reportPayload: {
+            completedAt: new Date().toISOString(),
+            courseTitle: activeCourse.title,
+            sentenceCount: courseSentences.length,
+          },
+          weakSentenceIds: [],
+        });
+        setReport(nextReport);
+      } else {
+        const nextIndex = courseSentences.findIndex((sentence) => !nextCompleted.has(sentence.sentenceId));
+        setCurrentIndex(nextIndex >= 0 ? nextIndex : currentIndex);
+      }
+    } catch (caught) {
+      setCourseError(readableError(caught));
+    } finally {
+      setLoadingCourse(false);
+    }
+  }
+
+  function exitCourse(): void {
+    setActiveCourse(null);
+    setCourseSentences([]);
+    setCompletedSentenceIds(new Set());
+    setCurrentIndex(0);
+    setReport(null);
+    setCourseError(null);
+  }
+
+  if (activeCourse) {
+    return (
+      <Stack spacing={2}>
+        <Card className="primaryPanel">
+          <CardContent>
+            <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ justifyContent: "space-between" }}>
+              <Box>
+                <Typography variant="h5">{activeCourse.title}</Typography>
+                <Typography color="text.secondary">{activeCourse.description ?? "逐句完成本课听读练习。"}</Typography>
+              </Box>
+              <Button onClick={exitCourse} variant="outlined">返回课程列表</Button>
+            </Stack>
+            <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ mt: 2 }}>
+              <Metric label="课程进度" value={`${completedCount}/${courseSentences.length}`} />
+              <Metric label="完成率" value={`${courseProgress}%`} />
+              <Metric label="Level" value={courseLevelLabel(activeCourse.level)} />
+            </Stack>
+            {courseSentences.length > 0 ? <LinearProgress sx={{ mt: 2 }} value={courseProgress} variant="determinate" /> : null}
+            {loadingCourse ? <LinearProgress sx={{ mt: 2 }} /> : null}
+            {courseError ? <Alert severity="warning" sx={{ mt: 2 }}>{courseError}</Alert> : null}
+          </CardContent>
+        </Card>
+
+        {report ? (
+          <Card className="primaryPanel">
+            <CardContent>
+              <Typography variant="h6">课程报告</Typography>
+              <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ mt: 2 }}>
+                <Metric label="练习句数" value={String(jsonNumber(report.practicedSentenceCount))} />
+                <Metric label="平均准确度" value={`${Math.round(Number(report.averageAccuracy ?? 1) * 100)}%`} />
+                <Metric label="薄弱句" value={String(Array.isArray(report.weakSentenceIds) ? report.weakSentenceIds.length : 0)} />
+              </Stack>
+              <Alert severity="success" sx={{ mt: 2 }}>本课已完成，课程报告已保存。</Alert>
+            </CardContent>
+          </Card>
+        ) : currentSentence ? (
+          <Card className="primaryPanel">
+            <CardContent>
+              <Typography color="text.secondary" variant="body2">第 {currentIndex + 1} 句 / 共 {courseSentences.length} 句</Typography>
+              <Typography sx={{ my: 2 }} variant="h5">{currentSentence.sentenceText}</Typography>
+              {currentSentence.translationCn ? <Typography color="text.secondary">{currentSentence.translationCn}</Typography> : null}
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
+                {(currentSentence.targetWords ?? []).map((word) => <Chip key={word} label={word} size="small" />)}
+                {currentSentence.difficultyLevel ? <Chip label={`难度 ${currentSentence.difficultyLevel}`} size="small" variant="outlined" /> : null}
+              </Stack>
+              <Stack direction={{ md: "row", xs: "column" }} spacing={1}>
+                <CourseAudioBlock label="常速音频" src={currentSentence.normalAudioUrl} />
+                <CourseAudioBlock label="慢速音频" src={currentSentence.slowAudioUrl} />
+              </Stack>
+              {!currentSentence.normalAudioUrl && !currentSentence.slowAudioUrl ? (
+                <Alert severity="warning" sx={{ mt: 2 }}>该句暂时没有音频，仍可先按文本完成本句。</Alert>
+              ) : null}
+              <Button disabled={disabled || loadingCourse} onClick={completeCurrentSentence} sx={{ mt: 2 }} startIcon={<TaskAltIcon />} variant="contained">
+                完成本句
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Alert severity="info">该课程没有可练习句子，请返回课程列表选择其他课程。</Alert>
+        )}
+      </Stack>
+    );
+  }
+
   return (
     <Stack className="contentGrid" direction={{ md: "row", xs: "column" }} spacing={2}>
       <Card className="primaryPanel">
@@ -799,11 +1033,24 @@ function CoursePanel({ courses, scenes, sentences }: { courses: Course[]; scenes
           <Typography variant="h6">课程列表</Typography>
           <List dense>
             {courses.slice(0, 8).map((course) => (
-              <ListItem key={course.courseId}>
-                <ListItemText primary={course.title} secondary={`Level ${course.level ?? 1} · ${course.sentenceCount ?? 0} 句`} />
+              <ListItem
+                key={course.courseId}
+                secondaryAction={(
+                  <Button disabled={disabled || loadingCourse || course.unlocked === false} onClick={() => void startCourse(course)} size="small" variant="contained">
+                    {course.unlocked === false ? "未解锁" : "开始学习"}
+                  </Button>
+                )}
+              >
+                <ListItemText
+                  primary={course.title}
+                  secondary={`${courseLevelLabel(course.level)} · ${course.sentenceCount ?? 0} 句${course.unlocked === false ? ` · ${course.lockReason ?? "未解锁"}` : ""}`}
+                />
               </ListItem>
             ))}
           </List>
+          {courses.length === 0 ? <Alert severity="info">暂无已发布课程。</Alert> : null}
+          {loadingCourse ? <LinearProgress /> : null}
+          {courseError ? <Alert severity="warning" sx={{ mt: 2 }}>{courseError}</Alert> : null}
         </CardContent>
       </Card>
       <Card className="primaryPanel">
@@ -838,6 +1085,23 @@ function ListenPanel({ onSubmit, sentences }: { onSubmit: (sentence: Sentence) =
       </CardContent>
     </Card>
   );
+}
+
+function CourseAudioBlock({ label, src }: { label: string; src?: null | string | undefined }): JSX.Element {
+  return (
+    <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1, flex: 1, minWidth: 0, p: 1 }}>
+      <Typography color="text.secondary" variant="caption">{label}</Typography>
+      {src ? <audio controls src={src} /> : <Typography color="text.secondary" variant="body2">暂无音频</Typography>}
+    </Box>
+  );
+}
+
+function courseLevelLabel(level?: number | null): string {
+  if (level === 1) return "入门";
+  if (level === 2) return "基础";
+  if (level === 3) return "进阶";
+  if (level === 4) return "高级";
+  return "未分级";
 }
 
 function ReportPanel({ courses, overview }: { courses: Course[]; overview: VocabularyOverview | null }): JSX.Element {
@@ -982,7 +1246,7 @@ function AdminModulePanel({
   const [items, setItems] = useState<JsonRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const moduleMeta = useMemo(() => adminModules.find((module) => module.key === adminModule) ?? defaultAdminModule, [adminModule]);
+  const moduleMeta = useMemo(() => adminModuleMeta(adminModule), [adminModule]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1700,7 +1964,7 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
             </Stack>
             {publishBlockedWords.length > 0 ? (
               <Alert severity="warning">
-                选中的 {publishBlockedWords.length} 个词暂不能发布。发布要求：审核通过、音频就绪且有音频 URL、未排除，并补齐中英文释义、FREQ/CD、Lg10WF/Lg10CD。
+                选中的 {publishBlockedWords.length} 个词暂不能发布。发布要求：审核通过、音频就绪且有音频 URL、未排除，并补齐 senses 释义、FREQ/CD、Lg10WF/Lg10CD。
               </Alert>
             ) : (
               <Alert severity="info">
@@ -1745,7 +2009,7 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
                     <TableCell><Button onClick={() => openEditWordDialog(word)} size="small">编辑资料</Button></TableCell>
 	                    <TableCell>{word.word}</TableCell>
                     <TableCell>{word.lemma}</TableCell>
-                    <TableCell>{word.meaningCn ?? word.meaningEn ?? ""}</TableCell>
+                    <TableCell>{[wordEntryPartOfSpeechText(word), wordEntryMeaningText(word)].filter(Boolean).join(" · ")}</TableCell>
                     <TableCell>{word.frequencyCount ?? ""} / {word.cdCount ?? ""}</TableCell>
                     <TableCell>{word.subtlwf ?? ""} · {word.lg10wf ?? ""}</TableCell>
                     <TableCell>{word.publishStatus ?? ""} · {word.reviewStatus ?? ""} · {word.audioStatus ?? ""}</TableCell>
@@ -1814,15 +2078,13 @@ function WordLibraryAdminPanel({ onError }: { onError: (message: string | null) 
         <DialogTitle>{editingWordId ? "编辑词条资料" : "创建词条"}</DialogTitle>
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
-            发布前需补齐中英文释义、音频 URL、音频状态、频率字段，并确保审核通过且未排除。
+            发布前需补齐 senses 释义、音频 URL、音频状态、频率字段，并确保审核通过且未排除。英文释义和词性由 DictionaryAPI Word Meta 写入 senses。
           </Alert>
           <Box className="wordFormGrid">
             <TextField label="word" onChange={(event) => updateForm("word", event.target.value)} required value={form.word} />
             <TextField label="lemma" onChange={(event) => updateForm("lemma", event.target.value)} value={form.lemma} />
             <TextField label="phonetic" onChange={(event) => updateForm("phonetic", event.target.value)} value={form.phonetic} />
-            <TextField label="partOfSpeech" onChange={(event) => updateForm("partOfSpeech", event.target.value)} value={form.partOfSpeech} />
-            <TextField label="meaningCn" onChange={(event) => updateForm("meaningCn", event.target.value)} required value={form.meaningCn} />
-            <TextField label="meaningEn" onChange={(event) => updateForm("meaningEn", event.target.value)} required value={form.meaningEn} />
+            <TextField label="meaningCn" onChange={(event) => updateForm("meaningCn", event.target.value)} value={form.meaningCn} />
             <TextField label="audioUrl" onChange={(event) => updateForm("audioUrl", event.target.value)} required value={form.audioUrl} />
             <TextField label="audioStatus" onChange={(event) => updateForm("audioStatus", event.target.value as WordFormState["audioStatus"])} select value={form.audioStatus}>
               <MenuItem value="missing">missing</MenuItem>
@@ -1940,9 +2202,10 @@ function WordMetaTable({ onApply, rows }: { onApply: (meta: WordMeta) => void; r
   );
 }
 
-function WordMetaDetail({ meta }: { meta: WordMeta }): JSX.Element {
+function WordMetaDetail({ meta, oneDefinitionPerPartOfSpeech = false }: { meta: WordMeta; oneDefinitionPerPartOfSpeech?: boolean }): JSX.Element {
   const entry = wordMetaDictionaryEntry(meta);
   const phonetics = wordMetaPhoneticItems(meta);
+  const meanings = oneDefinitionPerPartOfSpeech ? compactMeaningsByPartOfSpeech(entry.meanings) : entry.meanings;
   return (
     <Box className="dictionaryEntry">
       <Box className="dictionaryHero">
@@ -1959,15 +2222,15 @@ function WordMetaDetail({ meta }: { meta: WordMeta }): JSX.Element {
 
       <Box className="dictionaryBody singleColumn">
         <Box className="dictionaryMain">
-          {entry.meanings.map((meaning) => (
+          {meanings.map((meaning) => (
             <Box className="dictionaryMeaning" key={`${meta.wordMetaId}-${meaning.partOfSpeech}-${meaning.definitions.map((definition) => definition.definition).join("|").slice(0, 80)}`}>
               <Typography className="partOfSpeech">{meaning.partOfSpeech || "meaning"}</Typography>
               <Stack spacing={1.5}>
                 {meaning.definitions.map((definition, index) => (
                   <Box className="definitionBlock" key={`${definition.definition}-${definition.example ?? ""}`}>
                     <Typography className="definitionNumber">{index + 1}</Typography>
-                    <Box>
-                      <Typography>{definition.definition}</Typography>
+                    <Box className="definitionContent">
+                      <Typography className="definitionText">{definition.definition}</Typography>
                       {definition.example ? <Typography className="exampleSentence">{definition.example}</Typography> : null}
                       <WordRelationChips label="同义词" values={[...meaning.synonyms, ...definition.synonyms]} />
                       <WordRelationChips label="反义词" values={[...meaning.antonyms, ...definition.antonyms]} />
@@ -1977,7 +2240,7 @@ function WordMetaDetail({ meta }: { meta: WordMeta }): JSX.Element {
               </Stack>
             </Box>
           ))}
-          {entry.meanings.length === 0 ? <Alert severity="info">暂无可展示的释义结构。</Alert> : null}
+          {meanings.length === 0 ? <Alert severity="info">暂无可展示的释义结构。</Alert> : null}
         </Box>
 
       </Box>
@@ -2165,8 +2428,6 @@ function wordToForm(word: WordEntry): WordFormState {
     lg10wf: stringValue(word.lg10wf),
     meaningCn: word.meaningCn ?? "",
     meaningDistractors: (word.distractors?.meaning ?? []).join(", "),
-    meaningEn: word.meaningEn ?? "",
-    partOfSpeech: word.partOfSpeech ?? "",
     phonetic: word.phonetic ?? "",
     pronunciationDistractors: (word.distractors?.pronunciation ?? []).join(", "),
     publishStatus: word.publishStatus ?? "draft",
@@ -2202,8 +2463,6 @@ function wordFormToPayload(form: WordFormState): JsonRecord {
     lg10cd: nullableString(form.lg10cd),
     lg10wf: nullableString(form.lg10wf),
     meaningCn: nullableString(form.meaningCn),
-    meaningEn: nullableString(form.meaningEn),
-    partOfSpeech: nullableString(form.partOfSpeech),
     phonetic: nullableString(form.phonetic),
     reason: nullableString(form.reason) ?? undefined,
     reviewStatus: form.reviewStatus,
@@ -2232,6 +2491,52 @@ function nullableString(value: string): string | null {
 
 function stringValue(value: unknown): string {
   return value === null || value === undefined ? "" : String(value);
+}
+
+function wordEntryFromVocabularyRecord(record: JsonRecord): WordEntry | null {
+  const wordId = stringRecordValue(record, "wordId");
+  const word = stringRecordValue(record, "word");
+  if (!wordId || !word) return null;
+  const entry: WordEntry = {
+    audioUrl: nullableRecordString(record, "audioUrl"),
+    difficultyLevel: nullableRecordNumber(record, "difficultyLevel"),
+    frequencyCount: nullableRecordNumber(record, "frequencyCount"),
+    meaningCn: nullableRecordString(record, "meaningCn"),
+    senses: arrayRecordValue(record, "senses").map(wordSenseFromRecord),
+    phonetic: nullableRecordString(record, "phonetic"),
+    word,
+    wordId,
+  };
+  const lemma = stringRecordValue(record, "lemma");
+  if (lemma) entry.lemma = lemma;
+  return entry;
+}
+
+function wordSenseFromRecord(record: JsonRecord): WordSense {
+  const sense: WordSense = {
+    antonyms: stringArrayValue(record.antonyms),
+    definition: stringRecordValue(record, "definition"),
+    definitionIndex: numberRecordValue(record, "definitionIndex"),
+    example: stringRecordValue(record, "example") || null,
+    partOfSpeech: stringRecordValue(record, "partOfSpeech"),
+    rawDefinition: recordValue(record.rawDefinition),
+    senseIndex: numberRecordValue(record, "senseIndex"),
+    source: stringRecordValue(record, "source"),
+    synonyms: stringArrayValue(record.synonyms),
+    wordMetaId: stringRecordValue(record, "wordMetaId") || null,
+    wordSenseId: stringRecordValue(record, "wordSenseId"),
+  };
+  const wordId = stringRecordValue(record, "wordId");
+  if (wordId) sense.wordId = wordId;
+  return sense;
+}
+
+function wordEntryMeaningText(word: WordEntry): string {
+  return word.meaningCn ?? word.senses?.[0]?.definition ?? "";
+}
+
+function wordEntryPartOfSpeechText(word: WordEntry): string {
+  return [...new Set((word.senses ?? []).map((sense) => sense.partOfSpeech).filter(Boolean))].join(", ");
 }
 
 function shortId(value: string): string {
@@ -2278,6 +2583,36 @@ function wordMetaDictionaryEntry(meta: WordMeta): DictionaryEntry {
     sourceUrls: stringArrayValue(rawEntry.sourceUrls),
     word: stringRecordValue(rawEntry, "word") || meta.word,
   };
+}
+
+function compactMeaningsByPartOfSpeech(meanings: DictionaryMeaning[]): DictionaryMeaning[] {
+  const selected = new Map<string, DictionaryMeaning>();
+  meanings.forEach((meaning) => {
+    const partOfSpeech = meaning.partOfSpeech || "meaning";
+    const compactMeaning = {
+      ...meaning,
+      definitions: [bestDictionaryDefinition(meaning.definitions)].filter((definition): definition is DictionaryDefinition => Boolean(definition)),
+      partOfSpeech,
+    };
+    if (compactMeaning.definitions.length === 0) return;
+    const current = selected.get(partOfSpeech);
+    if (!current || dictionaryMeaningScore(compactMeaning) > dictionaryMeaningScore(current)) {
+      selected.set(partOfSpeech, compactMeaning);
+    }
+  });
+  return [...selected.values()];
+}
+
+function bestDictionaryDefinition(definitions: DictionaryDefinition[]): DictionaryDefinition | undefined {
+  return [...definitions].sort((left, right) => dictionaryDefinitionScore(right) - dictionaryDefinitionScore(left))[0];
+}
+
+function dictionaryMeaningScore(meaning: DictionaryMeaning): number {
+  return meaning.definitions.reduce((score, definition) => score + dictionaryDefinitionScore(definition), 0) + meaning.synonyms.length + meaning.antonyms.length;
+}
+
+function dictionaryDefinitionScore(definition: DictionaryDefinition): number {
+  return (definition.example ? 4 : 0) + definition.synonyms.length + definition.antonyms.length;
 }
 
 function firstRawPayloadEntry(payload: WordMeta["rawPayload"]): JsonRecord {
@@ -2333,6 +2668,22 @@ function stringRecordValue(record: JsonRecord, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+function nullableRecordString(record: JsonRecord, key: string): string | null {
+  const value = stringRecordValue(record, key);
+  return value || null;
+}
+
+function nullableRecordNumber(record: JsonRecord, key: string): number | null {
+  const value = record[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+
+function numberRecordValue(record: JsonRecord, key: string): number {
+  return nullableRecordNumber(record, key) ?? 0;
+}
+
 function recordValue(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
 }
@@ -2358,8 +2709,7 @@ function wordPublishBlockReasons(word: WordEntry, bulkStatus: BulkWordStatusStat
   if (reviewStatus !== "approved") reasons.push("审核未通过");
   if (audioStatus !== "ready") reasons.push("音频未就绪");
   if (word.isExcluded) reasons.push("已排除");
-  if (!word.meaningCn) reasons.push("缺中文释义");
-  if (!word.meaningEn) reasons.push("缺英文释义");
+  if ((word.senses ?? []).length === 0) reasons.push("缺 senses 释义");
   if (!word.audioUrl) reasons.push("缺音频 URL");
   if (!word.frequencyCount || !word.cdCount || !word.lg10wf || !word.lg10cd) reasons.push("缺频率或覆盖字段");
   return reasons;
@@ -2518,9 +2868,17 @@ function parseLearningTab(value: string | undefined): LearningTab {
 
 function parseAdminModule(value: string | undefined): AdminModule {
   if (value === "scenes" || value === "courses") return value;
+  if (value === "composition") return "courses";
   return adminModules.some((module) => module.key === value) ? (value as AdminModule) : "overview";
 }
 
 function isContentAdminModule(module: AdminModule): module is ContentAdminModule {
-  return ["overview", "content", "scenes", "courses", "sentences", "imports", "composition", "publishing"].includes(module);
+  return ["overview", "content", "scenes", "courses", "sentences", "imports", "publishing"].includes(module);
+}
+
+function adminModuleMeta(module: AdminModule): AdminModuleMeta {
+  if (module === "scenes" || module === "courses") {
+    return adminModules.find((item) => item.key === "content") ?? defaultAdminModule;
+  }
+  return adminModules.find((item) => item.key === module) ?? defaultAdminModule;
 }

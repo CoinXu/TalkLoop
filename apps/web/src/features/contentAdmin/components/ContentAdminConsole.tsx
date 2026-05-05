@@ -995,7 +995,6 @@ function CompositionPanel(props: {
         keyword: candidateKeyword,
         limit: listPageSize,
         offset,
-        sceneId: props.activeCourse.sceneId,
       });
       setCandidateRows(response.items.map(mapSentence).filter((sentence) => sentence.status !== "archived"));
       setCandidateOffset(offset);
@@ -1033,15 +1032,54 @@ function CompositionPanel(props: {
           {props.scenes.length === 0 ? (
             <Alert severity="warning" sx={{ mt: 2 }}>还没有场景。请先新建场景，再创建课程进行编排。</Alert>
           ) : null}
-          <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ mt: 2 }}>
-            <TextField disabled={props.courses.length === 0} label="查询课程" onChange={(event) => props.onChangeCourse(event.target.value)} select value={props.activeCourse?.courseId ?? ""}>
-              {props.courses.length === 0 ? <MenuItem value="">暂无课程</MenuItem> : null}
-              {props.courses.map((course) => <MenuItem key={course.courseId} value={course.courseId}>{course.title}</MenuItem>)}
-            </TextField>
-            <Metric label="所属场景" value={props.activeCourse ? props.scenes.find((scene) => scene.sceneId === props.activeCourse?.sceneId)?.name ?? "-" : "-"} />
-            <Metric label="句子数规则" value={props.activeCourse ? `${props.activeCourse.minSentenceCount}-${props.activeCourse.maxSentenceCount}` : "-"} />
-            <Metric label="当前句子数" value={String(courseSentences.length)} />
-          </Stack>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2">课程列表</Typography>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>课程</TableCell>
+                  <TableCell>场景</TableCell>
+                  <TableCell>level</TableCell>
+                  <TableCell>句子数</TableCell>
+                  <TableCell>规则</TableCell>
+                  <TableCell>状态</TableCell>
+                  <TableCell>校验</TableCell>
+                  <TableCell>操作</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {props.courses.map((course) => {
+                  const sentenceCount = props.sentences.filter((sentence) => sentence.courseId === course.courseId).length;
+                  const selected = props.activeCourse?.courseId === course.courseId;
+                  return (
+                    <TableRow key={course.courseId} selected={selected}>
+                      <TableCell>{course.title}</TableCell>
+                      <TableCell>{props.scenes.find((scene) => scene.sceneId === course.sceneId)?.name ?? course.sceneId}</TableCell>
+                      <TableCell>{levelLabel(course.level)}</TableCell>
+                      <TableCell>{sentenceCount}</TableCell>
+                      <TableCell>{course.minSentenceCount}-{course.maxSentenceCount} 句</TableCell>
+                      <TableCell><StatusChip status={course.status} /></TableCell>
+                      <TableCell><Chip color={course.validationStatus === "pass" ? "success" : course.validationStatus === "warning" ? "warning" : "error"} label={course.needsRevalidation ? "需重新校验" : course.validationStatus} size="small" /></TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1}>
+                          <Button onClick={() => props.onChangeCourse(course.courseId)} size="small" variant={selected ? "contained" : "outlined"}>编排</Button>
+                          <Button onClick={() => props.onEditCourse(course)} size="small">编辑</Button>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Box>
+          {props.activeCourse ? (
+            <Stack direction={{ md: "row", xs: "column" }} spacing={2} sx={{ mt: 2 }}>
+              <Metric label="当前课程" value={props.activeCourse.title} />
+              <Metric label="所属场景" value={props.scenes.find((scene) => scene.sceneId === props.activeCourse?.sceneId)?.name ?? "-"} />
+              <Metric label="句子数规则" value={`${props.activeCourse.minSentenceCount}-${props.activeCourse.maxSentenceCount}`} />
+              <Metric label="当前句子数" value={String(courseSentences.length)} />
+            </Stack>
+          ) : null}
           {props.scenes.length > 0 && props.courses.length === 0 ? (
             <Alert severity="info" sx={{ mt: 2 }}>当前没有课程。点击“新建课程”创建一条课程后，就可以从句子池添加句子。</Alert>
           ) : null}

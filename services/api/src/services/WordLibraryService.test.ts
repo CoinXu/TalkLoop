@@ -19,8 +19,14 @@ describe("DictionaryAPI word metadata", () => {
             {
               partOfSpeech: "adverb",
               definitions: [
-                { definition: "Used with a comparative to establish correlation." },
+                { definition: "Used with a comparative to establish correlation.", synonyms: ["thereby"], antonyms: [] },
                 { definition: "Used with a comparative to indicate a result." },
+              ],
+            },
+            {
+              partOfSpeech: "determiner",
+              definitions: [
+                { definition: "Denotes one or more people or things already mentioned.", example: "The book is on the table." },
               ],
             },
           ],
@@ -47,14 +53,17 @@ describe("DictionaryAPI word metadata", () => {
       audioStatus: "ready",
       audioUrl: "https://api.dictionaryapi.dev/media/pronunciations/en/the-us.mp3",
       lemma: "the",
-      meaningEn: "Used with a comparative to establish correlation.\nUsed with a comparative to indicate a result.",
-      partOfSpeech: "adverb",
       phonetic: "/ði/",
       word: "the",
     });
     expect(meta?.rawPayload).toBe(row);
     expect(meta?.phonetics).toHaveLength(2);
-    expect(meta?.meanings).toHaveLength(1);
+    expect(meta?.meanings).toHaveLength(2);
+    expect(meta?.senses).toEqual([
+      expect.objectContaining({ definition: "Used with a comparative to establish correlation.", definitionIndex: 0, partOfSpeech: "adverb", senseIndex: 0, synonyms: ["thereby"] }),
+      expect.objectContaining({ definition: "Used with a comparative to indicate a result.", definitionIndex: 1, partOfSpeech: "adverb", senseIndex: 0 }),
+      expect.objectContaining({ definition: "Denotes one or more people or things already mentioned.", example: "The book is on the table.", definitionIndex: 0, partOfSpeech: "determiner", senseIndex: 1 }),
+    ]);
   });
 
   it("skips failed rows", () => {

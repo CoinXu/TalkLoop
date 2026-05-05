@@ -55,10 +55,34 @@ async function runMigration(): Promise<void> {
     await applyMigrationIfMissing(client, "subtlexus_words", "0005_subtlexus_source_words.sql");
     await applyMigrationIfMissing(client, "content_admin_settings", "0006_content_admin_console_v1.sql");
     await applyMigrationIfMissing(client, "word_meta", "0007_word_meta_dictionaryapi.sql");
+    await applyMigrationIfMissing(client, "word_senses", "0008_word_senses_dictionaryapi.sql");
+    await applyMigrationFileOnce(client, "0009_drop_word_entry_summary_meaning_fields.sql");
+    await applyMigrationFileOnce(client, "0010_remove_dictionaryapi_summary_derived_fields.sql");
     await seedBootstrapAdminIfRequested(client);
   } finally {
     await client.end();
   }
+}
+
+async function applyMigrationFileOnce(client: pg.Client, migrationFileName: string): Promise<void> {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS local_migration_files (
+      file_name text PRIMARY KEY,
+      checksum text NOT NULL,
+      applied_at timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  const migrationPath = path.resolve(process.cwd(), "../../migrations", migrationFileName);
+  const sql = await fs.readFile(migrationPath, "utf8");
+  const checksum = createHash("sha256").update(sql).digest("hex");
+  const existing = await client.query("SELECT checksum FROM local_migration_files WHERE file_name = $1", [migrationFileName]);
+  if ((existing.rowCount ?? 0) > 0) {
+    console.log(`${migrationFileName} already applied; skipped`);
+    return;
+  }
+  await client.query(sql);
+  await client.query("INSERT INTO local_migration_files (file_name, checksum) VALUES ($1, $2)", [migrationFileName, checksum]);
+  console.log(`applied ${migrationFileName}`);
 }
 
 async function applyMigrationIfMissing(client: pg.Client, tableName: string, migrationFileName: string): Promise<void> {

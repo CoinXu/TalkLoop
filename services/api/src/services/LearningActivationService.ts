@@ -10,10 +10,19 @@ import type {
   SceneRow,
   SentenceRow,
   UserVocabularyEntryRow,
+  UserVocabularyWithWordRow,
 } from "../repositories/LearningActivationRepository.js";
 import type { AdminService, CurrentAdmin } from "./AdminService.js";
 
 export type JsonRecord = Record<string, unknown>;
+
+type ContinueLearningPrioritySource = "due_review" | "yellow_consolidation" | "red_activation" | "next_unlocked_batch";
+
+interface ContinueLearningCandidate {
+  practiceType: "audio_meaning" | "review";
+  prioritySource: ContinueLearningPrioritySource;
+  row: UserVocabularyWithWordRow;
+}
 
 export class LearningActivationService {
   constructor(
@@ -27,7 +36,7 @@ export class LearningActivationService {
 
   async listPublicCourses(query: { sceneId?: EntityId | undefined; level?: number | undefined; limit: number; offset: number }): Promise<JsonRecord[]> {
     const courses = await this.repository.listCourses({ ...query, publishStatus: "published" });
-    return Promise.all(courses.map((row) => this.courseWithUnlock(row)));
+    return Promise.all(courses.map((row, index) => this.courseWithUnlock(row, query.offset + index)));
   }
 
   async listPublicSentences(query: Omit<Parameters<LearningActivationRepository["listSentences"]>[0], "publishStatus" | "reviewStatus">): Promise<JsonRecord[]> {
@@ -257,6 +266,49 @@ export class LearningActivationService {
     return (await this.repository.listUserVocabulary(query)).map((row) => this.userVocabulary(row));
   }
 
+  async continueLearning(userId: string, query: { limit: number }): Promise<JsonRecord> {
+    const limit = Math.min(Math.max(query.limit, 1), 10);
+    const candidates: ContinueLearningCandidate[] = [];
+    const emptyReasons = new Set<string>();
+    const seenWordIds = new Set<string>();
+
+    await this.collectContinueLearningCandidates(candidates, seenWordIds, emptyReasons, {
+      limit,
+      practiceType: "review",
+      prioritySource: "due_review",
+      query: { dueOnly: true, status: "green", userId },
+    });
+    await this.collectContinueLearningCandidates(candidates, seenWordIds, emptyReasons, {
+      limit,
+      practiceType: "audio_meaning",
+      prioritySource: "yellow_consolidation",
+      query: { status: "yellow", userId },
+    });
+    await this.collectContinueLearningCandidates(candidates, seenWordIds, emptyReasons, {
+      limit,
+      practiceType: "audio_meaning",
+      prioritySource: "red_activation",
+      query: { status: "red", userId },
+    });
+
+    if (candidates.length === 0) {
+      const summary = await this.repository.vocabularySummary(userId);
+      if (Object.values(summary).reduce((sum, count) => sum + count, 0) === 0) emptyReasons.add("no_user_vocabulary");
+      if (emptyReasons.size === 0) emptyReasons.add("no_available_content");
+    }
+
+    return {
+      emptyReasons: candidates.length === 0 ? [...emptyReasons] : [],
+      hasMore: candidates.length > limit,
+      items: candidates.slice(0, limit).map((candidate) => ({
+        ...this.userVocabulary(candidate.row),
+        practiceType: candidate.practiceType,
+        prioritySource: candidate.prioritySource,
+      })),
+      limit,
+    };
+  }
+
   async vocabularyOverview(userId: string): Promise<JsonRecord> {
     const summary = await this.repository.vocabularySummary(userId);
     const total = Object.values(summary).reduce((sum, count) => sum + count, 0);
@@ -450,9 +502,10 @@ export class LearningActivationService {
     return (await this.repository.listCourseReports(query)).map((row) => this.courseReport(row));
   }
 
-  private async courseWithUnlock(row: CourseRow): Promise<JsonRecord> {
+  private async courseWithUnlock(row: CourseRow, rank: number): Promise<JsonRecord> {
     const sentenceCount = await this.repository.courseSentenceCount(row.id);
-    return { ...this.course(row), sentenceCount, unlocked: row.sortOrder < 3, lockReason: row.sortOrder < 3 ? null : "previous_course_required" };
+    const unlocked = rank < 3;
+    return { ...this.course(row), sentenceCount, unlocked, lockReason: unlocked ? null : "previous_course_required" };
   }
 
   private async courseWithValidation(row: CourseRow): Promise<JsonRecord> {
@@ -495,8 +548,79 @@ export class LearningActivationService {
     return serialize(row, "annotationTaskId");
   }
 
-  private userVocabulary(row: UserVocabularyEntryRow): JsonRecord {
-    return serialize(row, "userVocabularyEntryId");
+  private userVocabulary(row: UserVocabularyEntryRow | UserVocabularyWithWordRow): JsonRecord {
+    const output = serialize(row, "userVocabularyEntryId");
+    if ("wordEntry" in row) {
+      output.word = row.wordEntry.word;
+      output.lemma = row.wordEntry.lemma;
+      output.phonetic = row.wordEntry.phonetic;
+      output.meaningCn = row.wordEntry.meaningCn;
+      output.audioUrl = row.wordEntry.audioUrl;
+      output.difficultyLevel = row.wordEntry.difficultyLevel;
+      output.frequencyCount = row.wordEntry.frequencyCount;
+      output.lg10wf = row.wordEntry.lg10wf;
+      output.senses = row.senses.map((sense) => ({
+        antonyms: sense.antonyms,
+        definition: sense.definition,
+        definitionIndex: sense.definitionIndex,
+        example: sense.example,
+        partOfSpeech: sense.partOfSpeech,
+        senseIndex: sense.senseIndex,
+        source: sense.source,
+        synonyms: sense.synonyms,
+        wordSenseId: EntityIdCodec.stringify(sense.id),
+      }));
+    }
+    return output;
+  }
+
+  private async collectContinueLearningCandidates(
+    candidates: ContinueLearningCandidate[],
+    seenWordIds: Set<string>,
+    emptyReasons: Set<string>,
+    input: {
+      limit: number;
+      practiceType: "audio_meaning" | "review";
+      prioritySource: ContinueLearningPrioritySource;
+      query: Pick<Parameters<LearningActivationRepository["listUserVocabulary"]>[0], "dueOnly" | "status" | "userId">;
+    },
+  ): Promise<void> {
+    if (candidates.length > input.limit) return;
+    const rows = await this.repository.listUserVocabulary({ ...input.query, limit: Math.min(100, input.limit * 3 + 10), offset: 0 });
+    if (rows.length === 0) {
+      emptyReasons.add(this.emptyReasonForPrioritySource(input.prioritySource));
+      return;
+    }
+    let consumableCount = 0;
+    for (const row of rows) {
+      const wordId = EntityIdCodec.stringify(row.wordId);
+      if (seenWordIds.has(wordId)) continue;
+      if (!this.isWordConsumable(row.wordEntry)) {
+        this.collectWordContentReason(row.wordEntry, emptyReasons);
+        continue;
+      }
+      consumableCount += 1;
+      seenWordIds.add(wordId);
+      candidates.push({ practiceType: input.practiceType, prioritySource: input.prioritySource, row });
+      if (candidates.length > input.limit) return;
+    }
+    if (consumableCount === 0) emptyReasons.add(this.emptyReasonForPrioritySource(input.prioritySource));
+  }
+
+  private isWordConsumable(row: UserVocabularyWithWordRow["wordEntry"]): boolean {
+    return Boolean(row.publishStatus === "published" && row.reviewStatus === "approved" && !row.isExcluded && (row.audioStatus === "ready" || row.audioStatus === "default") && row.audioUrl);
+  }
+
+  private collectWordContentReason(row: UserVocabularyWithWordRow["wordEntry"], emptyReasons: Set<string>): void {
+    if (row.publishStatus !== "published" || row.reviewStatus !== "approved" || row.isExcluded) emptyReasons.add("content_not_published");
+    if (!row.audioUrl || (row.audioStatus !== "ready" && row.audioStatus !== "default")) emptyReasons.add("no_audio");
+  }
+
+  private emptyReasonForPrioritySource(source: ContinueLearningPrioritySource): string {
+    if (source === "due_review") return "no_due_review_words";
+    if (source === "yellow_consolidation") return "no_yellow_words";
+    if (source === "red_activation") return "no_unlocked_red_words";
+    return "no_next_unlocked_batch";
   }
 
   private dailyTask(row: DailyTaskRow, items: unknown[]): JsonRecord {

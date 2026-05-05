@@ -1,7 +1,7 @@
 import { AppError } from "../domain/AppError.js";
 import { EntityIdCodec, type EntityId } from "../domain/EntityId.js";
 import type { CurrentAdmin, AdminService } from "./AdminService.js";
-import type { WordEntryRow, WordLibraryRepository, WordMetaRow } from "../repositories/WordLibraryRepository.js";
+import type { WordEntryRow, WordEntryWithSensesRow, WordLibraryRepository, WordMetaRow, WordSenseRow } from "../repositories/WordLibraryRepository.js";
 import type { SubtlexusRepository, SubtlexusWordRow } from "../repositories/SubtlexusRepository.js";
 import { SubtlexImportParser } from "./SubtlexImportParser.js";
 import { randomUUID } from "node:crypto";
@@ -11,9 +11,7 @@ export interface WordEntryInput {
   lemma?: string | undefined;
   phonetic?: string | null | undefined;
   meaningCn?: string | null | undefined;
-  meaningEn?: string | null | undefined;
   audioUrl?: string | null | undefined;
-  partOfSpeech?: string | null | undefined;
   frequencyCount?: number | null | undefined;
   cdCount?: number | null | undefined;
   frequencyLow?: number | null | undefined;
@@ -53,8 +51,6 @@ export interface DictionaryApiDerivedFields {
   audioStatus: "missing" | "ready";
   audioUrl: string | null;
   lemma: string;
-  meaningEn: string | null;
-  partOfSpeech: string | null;
   phonetic: string | null;
   word: string;
 }
@@ -68,6 +64,17 @@ interface DictionaryApiMetaInput {
   normalizedWord: string;
   phonetics: Record<string, unknown>[];
   rawPayload: Record<string, unknown>;
+  senses: Array<{
+    antonyms: string[];
+    definition: string;
+    definitionIndex: number;
+    example: string | null;
+    partOfSpeech: string;
+    rawDefinition: Record<string, unknown>;
+    senseIndex: number;
+    source: string;
+    synonyms: string[];
+  }>;
   source: string;
   sourceUrl: string | null;
   word: string;
@@ -91,6 +98,7 @@ export function buildDictionaryApiMetaInput(raw: unknown, importBatchId: string)
   const phonetics = entries.flatMap((entry) => (Array.isArray(entry.phonetics) ? entry.phonetics.filter(isRecord) : []));
   const meanings = entries.flatMap((entry) => (Array.isArray(entry.meanings) ? entry.meanings.filter(isRecord) : []));
   const derivedFields = deriveDictionaryApiFields(word, normalizedWord, entries, phonetics, meanings);
+  const senses = deriveDictionaryApiSenses(meanings);
   const firstEntry = entries[0];
   const license = isRecord(firstEntry?.license) ? firstEntry.license : undefined;
   const sourceUrls = entries.flatMap((entry) => (Array.isArray(entry.sourceUrls) ? entry.sourceUrls.filter((url): url is string => typeof url === "string") : []));
@@ -105,10 +113,39 @@ export function buildDictionaryApiMetaInput(raw: unknown, importBatchId: string)
     normalizedWord,
     phonetics,
     rawPayload: raw,
+    senses,
     source: "dictionaryapi",
     sourceUrl: typeof source?.apiUrl === "string" ? source.apiUrl : sourceUrls[0] ?? null,
     word,
   };
+}
+
+function deriveDictionaryApiSenses(meanings: Record<string, unknown>[]): DictionaryApiMetaInput["senses"] {
+  return meanings.flatMap((meaning, senseIndex) => {
+    const partOfSpeech = typeof meaning.partOfSpeech === "string" && meaning.partOfSpeech.trim() ? meaning.partOfSpeech.trim() : null;
+    if (!partOfSpeech || !Array.isArray(meaning.definitions)) {
+      return [];
+    }
+    return meaning.definitions.filter(isRecord).flatMap((definition, definitionIndex) => {
+      const definitionText = typeof definition.definition === "string" ? definition.definition.trim() : "";
+      if (!definitionText) {
+        return [];
+      }
+      return [
+        {
+          antonyms: stringList(definition.antonyms),
+          definition: definitionText,
+          definitionIndex,
+          example: typeof definition.example === "string" && definition.example.trim() ? definition.example.trim() : null,
+          partOfSpeech,
+          rawDefinition: definition,
+          senseIndex,
+          source: "dictionaryapi",
+          synonyms: stringList(definition.synonyms),
+        },
+      ];
+    });
+  });
 }
 
 function deriveDictionaryApiFields(
@@ -121,20 +158,11 @@ function deriveDictionaryApiFields(
   const firstEntry = entries[0];
   const audioUrl = firstString(phonetics.map((item) => item.audio));
   const phonetic = firstString([firstEntry?.phonetic, ...phonetics.map((item) => item.text)]);
-  const firstMeaning = meanings[0];
-  const partOfSpeech = typeof firstMeaning?.partOfSpeech === "string" ? firstMeaning.partOfSpeech : null;
-  const definitions = meanings
-    .flatMap((meaning) => (Array.isArray(meaning.definitions) ? meaning.definitions.filter(isRecord) : []))
-    .map((definition) => definition.definition)
-    .filter((definition): definition is string => typeof definition === "string" && definition.trim().length > 0)
-    .slice(0, 5);
 
   return {
     audioStatus: audioUrl ? "ready" : "missing",
     audioUrl,
     lemma: normalizedWord,
-    meaningEn: definitions.length > 0 ? definitions.join("\n") : null,
-    partOfSpeech,
     phonetic,
     word,
   };
@@ -143,6 +171,10 @@ function deriveDictionaryApiFields(
 function firstString(values: unknown[]): string | null {
   const value = values.find((item): item is string => typeof item === "string" && item.trim().length > 0);
   return value?.trim() ?? null;
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()) : [];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -164,7 +196,9 @@ export class WordLibraryService {
   }
 
   async listWordMeta(query: Parameters<WordLibraryRepository["listMeta"]>[0]): Promise<Record<string, unknown>[]> {
-    return (await this.wordRepository.listMeta(query)).map((row) => this.toPublicWordMeta(row));
+    const rows = await this.wordRepository.listMeta(query);
+    const sensesByMetaId = await this.sensesByMetaId(rows);
+    return rows.map((row) => this.toPublicWordMeta(row, sensesByMetaId.get(EntityIdCodec.stringify(row.id)) ?? []));
   }
 
   async adminList(admin: CurrentAdmin, query: Parameters<WordLibraryRepository["list"]>[0]): Promise<Record<string, unknown>[]> {
@@ -179,7 +213,9 @@ export class WordLibraryService {
 
   async adminListWordMeta(admin: CurrentAdmin, query: Parameters<WordLibraryRepository["listMeta"]>[0]): Promise<Record<string, unknown>[]> {
     this.adminService.assertPermission(admin, "admin.word_meta.read");
-    return (await this.wordRepository.listMeta(query)).map((row) => this.toWordMeta(row));
+    const rows = await this.wordRepository.listMeta(query);
+    const sensesByMetaId = await this.sensesByMetaId(rows);
+    return rows.map((row) => this.toWordMeta(row, sensesByMetaId.get(EntityIdCodec.stringify(row.id)) ?? []));
   }
 
   async adminCreate(admin: CurrentAdmin, input: WordEntryInput): Promise<Record<string, unknown>> {
@@ -207,8 +243,6 @@ export class WordLibraryService {
       lg10cd: input.lg10cd ?? null,
       lg10wf: input.lg10wf ?? null,
       meaningCn: input.meaningCn ?? null,
-      meaningEn: input.meaningEn ?? null,
-      partOfSpeech: input.partOfSpeech ?? null,
       phonetic: input.phonetic ?? null,
       publishStatus: input.publishStatus ?? "draft",
       reviewStatus: input.reviewStatus ?? "pending_review",
@@ -239,7 +273,7 @@ export class WordLibraryService {
       throw new AppError("not_found", "Word entry not found");
     }
     if (publishStatus === "published") {
-      this.assertPublishable(word);
+      await this.assertPublishable(word);
     }
     const result = await this.wordRepository.update(id, { publishStatus });
     if (!result?.after) {
@@ -311,7 +345,7 @@ export class WordLibraryService {
       totalRows: input.rows.length,
     };
     if (input.dryRun) {
-      return { ...summary, applied: 0, created: 0, linked: 0, updated: 0 };
+      return { ...summary, applied: 0, created: 0, linked: 0, senses: 0, updated: 0 };
     }
 
     const stats = await this.wordRepository.upsertMetaRows(parsed.map((row) => this.toWordMetaInsert(row)));
@@ -322,7 +356,8 @@ export class WordLibraryService {
       }
     }
     const linked = await this.wordRepository.linkMetaToWords([...new Set(parsed.map((row) => row.normalizedWord))]);
-    const result = { ...summary, ...stats, applied, linked };
+    const senses = await this.wordRepository.replaceSensesFromDictionaryApi(parsed.map((row) => this.toWordSenseSourceInput(row)));
+    const result = { ...summary, ...stats, applied, linked, senses };
     await this.adminService.audit(admin, "admin.word_meta.write", "dictionaryapi_meta_import", "word_meta", null, undefined, result, input.reason);
     return result;
   }
@@ -342,11 +377,13 @@ export class WordLibraryService {
     if (!row) {
       throw new AppError("validation_failed", "Word entry was not found and createMissing is false");
     }
-    await this.adminService.audit(admin, "admin.word_meta.write", "dictionaryapi_meta_apply", "word_entry", EntityIdCodec.stringify(row.id), this.toWordMeta(meta), this.toAdminWord(row), input.reason);
+    await this.wordRepository.replaceSensesFromDictionaryApi([this.toWordSenseSourceInput(this.metaRowToDictionaryApiInput(meta))]);
+    const sensesByMetaId = await this.sensesByMetaId([meta]);
+    await this.adminService.audit(admin, "admin.word_meta.write", "dictionaryapi_meta_apply", "word_entry", EntityIdCodec.stringify(row.id), this.toWordMeta(meta, sensesByMetaId.get(EntityIdCodec.stringify(meta.id)) ?? []), this.toAdminWord(row), input.reason);
     return this.toAdminWord(row);
   }
 
-  toAdminWord(row: WordEntryRow): Record<string, unknown> {
+  toAdminWord(row: WordEntryRow | WordEntryWithSensesRow): Record<string, unknown> {
     return {
       audioStatus: row.audioStatus,
       audioUrl: row.audioUrl,
@@ -366,12 +403,11 @@ export class WordLibraryService {
       lg10cd: row.lg10cd,
       lg10wf: row.lg10wf,
       meaningCn: row.meaningCn,
-      meaningEn: row.meaningEn,
-      partOfSpeech: row.partOfSpeech,
       phonetic: row.phonetic,
       publishStatus: row.publishStatus,
       reviewStatus: row.reviewStatus,
       sceneTags: row.sceneTags,
+      senses: "senses" in row ? row.senses.map((sense) => this.toWordSense(sense)) : [],
       subtlcd: row.subtlcd,
       subtlwf: row.subtlwf,
       updatedAt: row.updatedAt.toISOString(),
@@ -380,7 +416,7 @@ export class WordLibraryService {
     };
   }
 
-  private toWordMeta(row: WordMetaRow): Record<string, unknown> {
+  private toWordMeta(row: WordMetaRow, senses: WordSenseRow[]): Record<string, unknown> {
     return {
       createdAt: row.createdAt.toISOString(),
       derivedFields: row.derivedFields,
@@ -391,6 +427,7 @@ export class WordLibraryService {
       normalizedWord: row.normalizedWord,
       phonetics: row.phonetics,
       rawPayload: row.rawPayload,
+      senses: senses.map((sense) => this.toWordSense(sense)),
       source: row.source,
       sourceUrl: row.sourceUrl,
       updatedAt: row.updatedAt.toISOString(),
@@ -400,7 +437,7 @@ export class WordLibraryService {
     };
   }
 
-  private toPublicWordMeta(row: WordMetaRow): Record<string, unknown> {
+  private toPublicWordMeta(row: WordMetaRow, senses: WordSenseRow[]): Record<string, unknown> {
     return {
       derivedFields: row.derivedFields,
       licenseName: row.licenseName,
@@ -408,6 +445,7 @@ export class WordLibraryService {
       meanings: row.meanings,
       normalizedWord: row.normalizedWord,
       phonetics: row.phonetics,
+      senses: senses.map((sense) => this.toWordSense(sense)),
       source: row.source,
       sourceUrl: row.sourceUrl,
       word: row.word,
@@ -433,6 +471,70 @@ export class WordLibraryService {
     };
   }
 
+  private toWordSenseSourceInput(input: DictionaryApiMetaInput): Parameters<WordLibraryRepository["replaceSensesFromDictionaryApi"]>[0][number] {
+    return {
+      normalizedWord: input.normalizedWord,
+      senses: input.senses.map((sense) => ({
+        antonyms: sense.antonyms,
+        definition: sense.definition,
+        definitionIndex: sense.definitionIndex,
+        example: sense.example,
+        partOfSpeech: sense.partOfSpeech,
+        rawDefinition: sense.rawDefinition,
+        senseIndex: sense.senseIndex,
+        source: sense.source,
+        synonyms: sense.synonyms,
+      })),
+      source: input.source,
+    };
+  }
+
+  private metaRowToDictionaryApiInput(row: WordMetaRow): DictionaryApiMetaInput {
+    return {
+      derivedFields: this.readDerivedFields(row),
+      importBatchId: row.importBatchId ?? "",
+      licenseName: row.licenseName,
+      licenseUrl: row.licenseUrl,
+      meanings: row.meanings,
+      normalizedWord: row.normalizedWord,
+      phonetics: row.phonetics,
+      rawPayload: row.rawPayload,
+      senses: deriveDictionaryApiSenses(row.meanings),
+      source: row.source,
+      sourceUrl: row.sourceUrl,
+      word: row.word,
+      wordId: row.wordId,
+    };
+  }
+
+  private async sensesByMetaId(rows: WordMetaRow[]): Promise<Map<string, WordSenseRow[]>> {
+    const senses = await this.wordRepository.listSensesByMetaIds(rows.map((row) => row.id));
+    const output = new Map<string, WordSenseRow[]>();
+    for (const sense of senses) {
+      if (!sense.wordMetaId) continue;
+      const key = EntityIdCodec.stringify(sense.wordMetaId);
+      output.set(key, [...(output.get(key) ?? []), sense]);
+    }
+    return output;
+  }
+
+  private toWordSense(row: WordSenseRow): Record<string, unknown> {
+    return {
+      antonyms: row.antonyms,
+      definition: row.definition,
+      definitionIndex: row.definitionIndex,
+      example: row.example,
+      partOfSpeech: row.partOfSpeech,
+      rawDefinition: row.rawDefinition,
+      senseIndex: row.senseIndex,
+      source: row.source,
+      synonyms: row.synonyms,
+      wordId: EntityIdCodec.stringify(row.wordId),
+      wordMetaId: row.wordMetaId ? EntityIdCodec.stringify(row.wordMetaId) : null,
+      wordSenseId: EntityIdCodec.stringify(row.id),
+    };
+  }
+
   private toSubtlexusWord(row: SubtlexusWordRow): Record<string, unknown> {
     return {
       cdCount: row.cdCount,
@@ -453,14 +555,14 @@ export class WordLibraryService {
     };
   }
 
-  private toPublicWord(row: WordEntryRow): Record<string, unknown> {
+  private toPublicWord(row: WordEntryWithSensesRow): Record<string, unknown> {
     return {
       audioUrl: row.audioUrl,
       difficultyLevel: row.difficultyLevel,
       meaningCn: row.meaningCn,
-      meaningEn: row.meaningEn,
       phonetic: row.phonetic,
       sceneTags: row.sceneTags,
+      senses: row.senses.map((sense) => this.toWordSense(sense)),
       word: row.word,
       wordId: EntityIdCodec.stringify(row.id),
     };
@@ -490,8 +592,6 @@ export class WordLibraryService {
     assign("lg10cd", input.lg10cd);
     assign("lg10wf", input.lg10wf);
     assign("meaningCn", input.meaningCn);
-    assign("meaningEn", input.meaningEn);
-    assign("partOfSpeech", input.partOfSpeech);
     assign("phonetic", input.phonetic);
     assign("publishStatus", input.publishStatus);
     assign("reviewStatus", input.reviewStatus);
@@ -516,8 +616,6 @@ export class WordLibraryService {
       audioStatus: value.audioStatus,
       audioUrl: typeof value.audioUrl === "string" ? value.audioUrl : null,
       lemma: value.lemma,
-      meaningEn: typeof value.meaningEn === "string" ? value.meaningEn : null,
-      partOfSpeech: typeof value.partOfSpeech === "string" ? value.partOfSpeech : null,
       phonetic: typeof value.phonetic === "string" ? value.phonetic : null,
       word: value.word,
     };
@@ -547,8 +645,6 @@ export class WordLibraryService {
         lg10cd: null,
         lg10wf: null,
         meaningCn: null,
-        meaningEn: derived.meaningEn,
-        partOfSpeech: derived.partOfSpeech,
         phonetic: derived.phonetic,
         publishStatus: "draft",
         reviewStatus: "pending_review",
@@ -561,8 +657,6 @@ export class WordLibraryService {
 
     const input: WordEntryPatchInput = {};
     this.assignDerivedPatch(input, "audioUrl", existing.audioUrl, derived.audioUrl, options.overwrite);
-    this.assignDerivedPatch(input, "meaningEn", existing.meaningEn, derived.meaningEn, options.overwrite);
-    this.assignDerivedPatch(input, "partOfSpeech", existing.partOfSpeech, derived.partOfSpeech, options.overwrite);
     this.assignDerivedPatch(input, "phonetic", existing.phonetic, derived.phonetic, options.overwrite);
     if ((options.overwrite || existing.audioStatus === "missing") && derived.audioStatus === "ready") {
       input.audioStatus = "ready";
@@ -571,7 +665,7 @@ export class WordLibraryService {
     return result?.after;
   }
 
-  private assignDerivedPatch<K extends "audioUrl" | "meaningEn" | "partOfSpeech" | "phonetic">(
+  private assignDerivedPatch<K extends "audioUrl" | "phonetic">(
     patch: WordEntryPatchInput,
     key: K,
     existing: string | null,
@@ -583,18 +677,19 @@ export class WordLibraryService {
     }
   }
 
-  private isConsumable(row: WordEntryRow): boolean {
-    return Boolean(row.meaningCn && row.meaningEn && row.audioUrl && row.frequencyCount && row.cdCount && row.lg10wf && row.lg10cd);
+  private isConsumable(row: WordEntryWithSensesRow): boolean {
+    return Boolean(row.senses.length > 0 && row.audioUrl && row.frequencyCount && row.cdCount && row.lg10wf && row.lg10cd);
   }
 
-  private assertPublishable(row: WordEntryRow): void {
+  private async assertPublishable(row: WordEntryRow): Promise<void> {
     if (row.reviewStatus !== "approved") {
       throw new AppError("validation_failed", "Word must be approved before publishing");
     }
     if (row.isExcluded) {
       throw new AppError("validation_failed", "Excluded words cannot be published");
     }
-    if (!this.isConsumable(row) || row.audioStatus !== "ready") {
+    const hasSenses = await this.wordRepository.wordHasSenses(row.id);
+    if (!hasSenses || !row.audioUrl || !row.frequencyCount || !row.cdCount || !row.lg10wf || !row.lg10cd || row.audioStatus !== "ready") {
       throw new AppError("validation_failed", "Word must include meanings, audio, frequency fields, and context diversity before publishing");
     }
   }

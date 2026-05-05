@@ -58,7 +58,7 @@ function mockFetch(): void {
       difficultyLevel: 2,
       normalAudioUrl: null,
       phraseChunks: ["set off", "before sunrise"],
-      sceneId: "1001",
+      sceneId: null,
       sceneTags: ["travel"],
       sentenceId: "3002",
       slowAudioUrl: null,
@@ -87,12 +87,12 @@ function mockFetch(): void {
       importBatchId: "dict-batch-1",
       licenseName: "CC BY-SA",
       licenseUrl: "https://example.com/license",
-      meanings: [{ definitions: [{ definition: "to guide someone through a process", example: "I can walk you through the setup.", synonyms: ["guide"], antonyms: ["confuse"] }], partOfSpeech: "verb", synonyms: ["lead"], antonyms: [] }],
+      meanings: [{ definitions: [{ definition: "to guide someone through a process", example: "I can walk you through the setup.", synonyms: ["guide"], antonyms: ["confuse"] }, { definition: "to move on foot", synonyms: [], antonyms: [] }], partOfSpeech: "verb", synonyms: ["lead"], antonyms: [] }],
       normalizedWord: "walk",
       phonetics: [{ audio: "https://example.com/walk.mp3", text: "/wɔːk/" }],
       rawPayload: [{
         license: { name: "CC BY-SA 3.0", url: "https://creativecommons.org/licenses/by-sa/3.0" },
-        meanings: [{ definitions: [{ definition: "to guide someone through a process", example: "I can walk you through the setup.", synonyms: ["guide"], antonyms: ["confuse"] }], partOfSpeech: "verb", synonyms: ["lead"], antonyms: [] }],
+        meanings: [{ definitions: [{ definition: "to guide someone through a process", example: "I can walk you through the setup.", synonyms: ["guide"], antonyms: ["confuse"] }, { definition: "to move on foot", synonyms: [], antonyms: [] }], partOfSpeech: "verb", synonyms: ["lead"], antonyms: [] }],
         phonetic: "/wɔːk/",
         phonetics: [{ audio: "https://example.com/walk.mp3", text: "/wɔːk/" }],
         sourceUrls: ["https://en.wiktionary.org/wiki/walk"],
@@ -141,11 +141,13 @@ function mockFetch(): void {
       if (url.includes("/admin/content/sentences")) {
         const params = new URL(url, "http://localhost").searchParams;
         const assigned = params.get("assigned");
+        const sceneId = params.get("sceneId");
         const limit = Number(params.get("limit") ?? 10);
         const offset = Number(params.get("offset") ?? 0);
         const filtered = contentSentences.filter((sentence) => {
-          if (assigned === "true") return Boolean(sentence.courseId);
-          if (assigned === "false") return !sentence.courseId;
+          if (assigned === "true" && !sentence.courseId) return false;
+          if (assigned === "false" && sentence.courseId) return false;
+          if (sceneId) return sentence.sceneId === sceneId;
           return true;
         });
         return json({ items: filtered.slice(offset, offset + limit) });
@@ -232,11 +234,342 @@ describe("App v1.0 shell", () => {
     await userEvent.click(screen.getByRole("button", { name: "查询" }));
 
     expect(await screen.findByText("to guide someone through a process")).toBeInTheDocument();
+    expect(screen.queryByText("to move on foot")).not.toBeInTheDocument();
     expect(screen.getByText(/I can walk you through the setup/)).toBeInTheDocument();
     expect(screen.getByText("guide")).toBeInTheDocument();
     expect(screen.getByText("confuse")).toBeInTheDocument();
     expect(screen.getAllByLabelText("发音播放器").length).toBeGreaterThan(0);
     expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/word-library\/word-meta\?.*keyword=walk/), expect.anything());
+  });
+
+  it("omits empty text match rate from listen-repeat attempts", async () => {
+    window.localStorage.setItem("learning-activation-user-session", JSON.stringify({ sessionId: "local-demo-user-test" }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/learning/listen-repeat/attempts")) return json({ listenRepeatAttemptId: "repeat-1", vocabularyUpdates: [] });
+        if (url.includes("/learning/sentences")) {
+          return json({
+            items: [
+              {
+                audioStatus: "ready",
+                courseId: "2001",
+                difficultyLevel: 1,
+                normalAudioUrl: null,
+                phraseChunks: [],
+                sceneId: null,
+                sceneTags: [],
+                sentenceId: "3001",
+                sentenceText: "Let's try!",
+                slowAudioUrl: null,
+                sortOrder: 1,
+                targetWords: ["try"],
+                translationCn: null,
+              },
+            ],
+          });
+        }
+        if (url.includes("/learning/assessment/active")) return json({ assessmentConfigId: null, selfDescriptionQuestions: [] });
+        if (url.includes("/learning/vocabulary")) return json({ activationRate: 0, green: 0, red: 0, total: 0, yellow: 0 });
+        if (url.includes("/learning/courses")) return json({ items: [] });
+        return json({ items: [] });
+      }),
+    );
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("tab", { name: /听读/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "提交跟读" }));
+
+    const listenRepeatCall = vi.mocked(fetch).mock.calls.find(([input]) => String(input).includes("/learning/listen-repeat/attempts"));
+    const body = parseBody(listenRepeatCall?.[1]?.body);
+    expect(body).toMatchObject({ mode: "A", sentenceId: "3001", targetWordHits: ["try"] });
+    expect(body).not.toHaveProperty("textMatchRate");
+  });
+
+  it("keeps locked courses disabled in the learning course list", async () => {
+    const course = {
+      courseId: "2001",
+      description: "会议中表达观点、追问细节和确认行动项",
+      level: 3,
+      lockReason: "previous_course_required",
+      publishStatus: "published",
+      sceneId: "1001",
+      sentenceCount: 1,
+      title: "会议沟通基础",
+      unlocked: false,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/learning/courses")) return json({ items: [course] });
+        if (url.includes("/learning/assessment/active")) return json({ assessmentConfigId: null, selfDescriptionQuestions: [] });
+        if (url.includes("/learning/vocabulary")) return json({ activationRate: 0, green: 0, red: 0, total: 0, yellow: 0 });
+        if (url.includes("/word-library/words")) return json({ items: [] });
+        return json({ items: [] });
+      }),
+    );
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("tab", { name: /课程/ }));
+
+    expect(await screen.findByRole("button", { name: "未解锁" })).toBeDisabled();
+    expect(screen.getByText(/previous_course_required/)).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringMatching(/\/learning\/sentences\?courseId=2001/), expect.anything());
+  });
+
+  it("starts an unlocked course task and saves a course report", async () => {
+    const course = {
+      courseId: "2001",
+      description: "会议中表达观点、追问细节和确认行动项",
+      level: 3,
+      publishStatus: "published",
+      sceneId: "1001",
+      sentenceCount: 1,
+      title: "会议沟通基础",
+      unlocked: true,
+    };
+    const courseSentence = {
+      courseId: "2001",
+      difficultyLevel: 3,
+      normalAudioUrl: "https://example.com/normal.mp3",
+      sceneId: "1001",
+      sentenceId: "3001",
+      sentenceText: "Could you walk me through the report?",
+      slowAudioUrl: "https://example.com/slow.mp3",
+      targetWords: ["walk through"],
+      translationCn: "你能带我过一下这份报告吗？",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/learning/course-reports")) {
+          const body = parseBody(init?.body);
+          return json({
+            activatedWordIds: [],
+            averageAccuracy: String(body.averageAccuracy ?? "1"),
+            averageSpeedRatio: String(body.averageSpeedRatio ?? "1"),
+            bestSentenceId: body.bestSentenceId,
+            courseId: body.courseId,
+            courseReportId: "report-1",
+            createdAt: "2026-05-05T00:00:00.000Z",
+            practicedSentenceCount: body.practicedSentenceCount,
+            reportPayload: body.reportPayload ?? {},
+            userId: "local-demo-user-test",
+            weakSentenceIds: [],
+          });
+        }
+        if (url.includes("/learning/listen-repeat/attempts")) return json({ listenRepeatAttemptId: "repeat-1", vocabularyUpdates: [] });
+        if (url.includes("/learning/courses")) return json({ items: [course] });
+        if (url.includes("/learning/sentences")) return json({ items: [courseSentence] });
+        if (url.includes("/learning/assessment/active")) return json({ assessmentConfigId: null, selfDescriptionQuestions: [] });
+        if (url.includes("/learning/vocabulary")) return json({ activationRate: 0, green: 0, red: 0, total: 0, yellow: 0 });
+        if (url.includes("/word-library/words")) return json({ items: [] });
+        return json({ items: [] });
+      }),
+    );
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("tab", { name: /课程/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "开始学习" }));
+
+    expect(await screen.findByText("Could you walk me through the report?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "完成本句" }));
+
+    expect(await screen.findByText("课程报告")).toBeInTheDocument();
+    expect(screen.getByText("本课已完成，课程报告已保存。")).toBeInTheDocument();
+    const listenRepeatCall = vi.mocked(fetch).mock.calls.find(([input]) => String(input).includes("/learning/listen-repeat/attempts"));
+    expect(JSON.parse(String(listenRepeatCall?.[1]?.body))).toMatchObject({ mode: "A", sentenceId: "3001" });
+    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/learning\/sentences\?courseId=2001/), expect.anything());
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/learning/course-reports"), expect.anything());
+  });
+
+  it("hydrates daily task word details from user vocabulary by word id", async () => {
+    window.localStorage.setItem("learning-activation-user-session", JSON.stringify({ sessionId: "local-demo-user-test" }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/learning/vocabulary/words")) {
+          return json({
+            items: [
+              {
+                audioUrl: "https://example.com/anchor.mp3",
+                difficultyLevel: 2,
+                meaningCn: "锚点",
+                phonetic: "/ˈæŋkər/",
+                senses: [{
+                  antonyms: [],
+                  definition: "a point that keeps something in place",
+                  definitionIndex: 0,
+                  example: null,
+                  partOfSpeech: "noun",
+                  rawDefinition: {},
+                  senseIndex: 0,
+                  source: "dictionaryapi",
+                  synonyms: [],
+                  wordId: "word-99",
+                  wordMetaId: null,
+                  wordSenseId: "sense-99",
+                }],
+                word: "anchor",
+                wordId: "word-99",
+              },
+            ],
+          });
+        }
+        if (url.includes("/learning/vocabulary")) return json({ activationRate: 0, green: 0, red: 1, total: 1, yellow: 0 });
+        if (url.includes("/learning/daily-task")) {
+          return json({
+            dailyTaskId: "task-1",
+            items: [{ dailyTaskItemId: "task-item-1", itemType: "audio_meaning", status: "pending", wordId: "word-99" }],
+            strategyVersion: "default",
+            summary: { estimatedMinutes: 1 },
+          });
+        }
+        if (url.includes("/word-library/words")) return json({ items: [] });
+        if (url.includes("/learning/courses")) return json({ items: [] });
+        if (url.includes("/learning/sentences")) return json({ items: [] });
+        if (url.includes("/learning/assessment/active")) return json({ assessmentConfigId: null, selfDescriptionQuestions: [] });
+        return json({ items: [] });
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText("anchor")).toBeInTheDocument();
+    expect(screen.getByText("a point that keeps something in place")).toBeInTheDocument();
+    expect(screen.queryByText(/缺少词条详情/)).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/learning\/vocabulary\/words\?.*wordId=word-99/), expect.anything());
+  });
+
+  it("allows skipping a daily word task when the word has no meaning", async () => {
+    window.localStorage.setItem("learning-activation-user-session", JSON.stringify({ sessionId: "local-demo-user-test" }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/learning/practice/activation-attempts")) return json({ activationAttemptId: "attempt-1" });
+        if (url.includes("/learning/vocabulary/words")) {
+          return json({
+            items: [
+              {
+                audioUrl: null,
+                difficultyLevel: 2,
+                meaningCn: null,
+                phonetic: "/ˈæŋkər/",
+                senses: [],
+                word: "anchor",
+                wordId: "word-99",
+              },
+            ],
+          });
+        }
+        if (url.includes("/learning/vocabulary")) return json({ activationRate: 0, green: 0, red: 1, total: 1, yellow: 0 });
+        if (url.includes("/learning/daily-task")) {
+          return json({
+            dailyTaskId: "task-1",
+            items: [{ dailyTaskItemId: "task-item-1", itemType: "audio_meaning", status: "pending", wordId: "word-99" }],
+            strategyVersion: "default",
+            summary: { estimatedMinutes: 1 },
+          });
+        }
+        if (url.includes("/word-library/words")) return json({ items: [] });
+        if (url.includes("/learning/courses")) return json({ items: [] });
+        if (url.includes("/learning/sentences")) return json({ items: [] });
+        if (url.includes("/learning/assessment/active")) return json({ assessmentConfigId: null, selfDescriptionQuestions: [] });
+        return json({ items: [] });
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText(/该词缺少释义/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "跳过该任务" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/learning/practice/activation-attempts"), expect.anything()));
+    const activationCall = vi.mocked(fetch).mock.calls.find(([input]) => String(input).includes("/learning/practice/activation-attempts"));
+    expect(JSON.parse(String(activationCall?.[1]?.body))).toMatchObject({ correctAnswer: null, isCorrect: false, selectedAnswer: null, wordId: "word-99" });
+  });
+
+  it("loads continue-learning batches after daily tasks are completed", async () => {
+    window.localStorage.setItem("learning-activation-user-session", JSON.stringify({ sessionId: "local-demo-user-test" }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/learning/practice/activation-attempts")) return json({ activationAttemptId: "attempt-continue" });
+        if (url.includes("/learning/continue-learning")) {
+          return json({
+            emptyReasons: [],
+            hasMore: true,
+            items: [
+              {
+                audioUrl: "https://example.com/continue.mp3",
+                difficultyLevel: 2,
+                meaningCn: "继续",
+                phonetic: "/kənˈtɪnjuː/",
+                practiceType: "audio_meaning",
+                prioritySource: "red_activation",
+                senses: [{
+                  antonyms: [],
+                  definition: "to keep going",
+                  definitionIndex: 0,
+                  example: null,
+                  partOfSpeech: "verb",
+                  rawDefinition: {},
+                  senseIndex: 0,
+                  source: "dictionaryapi",
+                  synonyms: [],
+                  wordId: "word-continue",
+                  wordMetaId: null,
+                  wordSenseId: "sense-continue",
+                }],
+                word: "continue",
+                wordId: "word-continue",
+              },
+            ],
+            limit: 6,
+          });
+        }
+        if (url.includes("/learning/vocabulary")) return json({ activationRate: 0.4, green: 1, red: 1, total: 2, yellow: 0 });
+        if (url.includes("/learning/daily-task")) {
+          return json({
+            dailyTaskId: "task-1",
+            items: [{ dailyTaskItemId: "task-item-1", itemType: "audio_meaning", status: "completed", wordId: "word-done" }],
+            strategyVersion: "default",
+            summary: { estimatedMinutes: 1 },
+          });
+        }
+        if (url.includes("/word-library/words")) return json({ items: [] });
+        if (url.includes("/learning/courses")) return json({ items: [] });
+        if (url.includes("/learning/sentences")) return json({ items: [] });
+        if (url.includes("/learning/assessment/active")) return json({ assessmentConfigId: null, selfDescriptionQuestions: [] });
+        return json({ items: [] });
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: "继续学习" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "继续学习" }));
+
+    expect(await screen.findByText("continue")).toBeInTheDocument();
+    expect(screen.getByText("待激活词")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "继续" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/learning/practice/activation-attempts"), expect.anything()));
+    const activationCall = vi.mocked(fetch).mock.calls.find(([input]) => String(input).includes("/learning/practice/activation-attempts"));
+    expect(JSON.parse(String(activationCall?.[1]?.body))).toMatchObject({
+      practiceType: "audio_meaning",
+      result: { prioritySource: "red_activation", source: "continue_learning" },
+      wordId: "word-continue",
+    });
   });
 
   it("supports content admin creation and audit visibility", async () => {
@@ -288,13 +621,18 @@ describe("App v1.0 shell", () => {
     render(<App />);
 
     expect((await screen.findAllByText("课程编排")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /课程编排/ })).not.toBeInTheDocument();
     expect(await screen.findByText("We should set off before sunrise.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "新建课程" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑课程" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "归档课程" })).toBeInTheDocument();
-    expect(screen.getByLabelText("查询课程")).toBeInTheDocument();
+    expect(screen.getByText("课程列表")).toBeInTheDocument();
+    expect(screen.getAllByText("会议沟通基础").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "编排" })).toBeInTheDocument();
     expect(screen.getByLabelText("查询句子 / 目标词")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "添加" })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/admin\/content\/sentences\?.*assigned=false/), expect.anything());
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringMatching(/\/admin\/content\/sentences\?.*assigned=false.*sceneId=/), expect.anything());
     expect(screen.getAllByRole("button", { name: "编辑" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "移除" })).toBeInTheDocument();
   });

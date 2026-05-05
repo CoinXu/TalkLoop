@@ -103,9 +103,7 @@ export const wordEntries = pgTable(
     lemma: text("lemma").notNull(),
     phonetic: text("phonetic"),
     meaningCn: text("meaning_cn"),
-    meaningEn: text("meaning_en"),
     audioUrl: text("audio_url"),
-    partOfSpeech: text("part_of_speech"),
     frequencyCount: integer("frequency_count"),
     cdCount: integer("cd_count"),
     frequencyLow: integer("frequency_low"),
@@ -155,6 +153,29 @@ export const wordMeta = pgTable(
     sourceNormalizedWordIdx: uniqueIndex("word_meta_source_normalized_word_idx").on(table.source, table.normalizedWord),
     wordIdIdx: index("word_meta_word_id_idx").on(table.wordId),
     wordIdx: index("word_meta_word_idx").on(table.word),
+  }),
+);
+
+export const wordSenses = pgTable(
+  "word_senses",
+  {
+    ...baseColumns(),
+    antonyms: jsonb("antonyms").$type<string[]>().notNull().default([]),
+    definition: text("definition").notNull(),
+    definitionIndex: integer("definition_index").notNull().default(0),
+    example: text("example"),
+    partOfSpeech: text("part_of_speech").notNull(),
+    rawDefinition: jsonb("raw_definition").$type<Record<string, unknown>>().notNull().default({}),
+    senseIndex: integer("sense_index").notNull().default(0),
+    source: text("source").notNull(),
+    synonyms: jsonb("synonyms").$type<string[]>().notNull().default([]),
+    wordId: pgBigint("word_id", { mode: "bigint" }).notNull().references(() => wordEntries.id),
+    wordMetaId: pgBigint("word_meta_id", { mode: "bigint" }).references(() => wordMeta.id),
+  },
+  (table) => ({
+    metaDefinitionIdx: uniqueIndex("word_senses_meta_definition_idx").on(table.wordMetaId, table.senseIndex, table.definitionIndex),
+    metaIdx: index("word_senses_word_meta_id_idx").on(table.wordMetaId),
+    wordIdx: index("word_senses_word_id_idx").on(table.wordId, table.partOfSpeech, table.senseIndex, table.definitionIndex),
   }),
 );
 

@@ -1,6 +1,6 @@
 import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import type { AppDatabase } from "../infrastructure/database/Database.js";
-import { wordEntries, wordMeta } from "../infrastructure/database/schema.js";
+import { wordEntries, wordMeta, wordSenses } from "../infrastructure/database/schema.js";
 import type { SnowflakeIdGenerator } from "../infrastructure/SnowflakeIdGenerator.js";
 import type { EntityId } from "../domain/EntityId.js";
 
@@ -8,6 +8,9 @@ export type WordEntryRow = typeof wordEntries.$inferSelect;
 export type WordEntryInsert = typeof wordEntries.$inferInsert;
 export type WordMetaRow = typeof wordMeta.$inferSelect;
 export type WordMetaInsert = typeof wordMeta.$inferInsert;
+export type WordSenseRow = typeof wordSenses.$inferSelect;
+export type WordSenseInsert = typeof wordSenses.$inferInsert;
+export type WordEntryWithSensesRow = WordEntryRow & { senses: WordSenseRow[] };
 
 export interface WordListQuery {
   keyword?: string | undefined;
@@ -50,6 +53,12 @@ export interface WordMetaImportStats {
   updated: number;
 }
 
+export interface WordSenseSourceInput {
+  normalizedWord: string;
+  senses: Array<Omit<WordSenseInsert, "createdAt" | "id" | "updatedAt" | "wordId" | "wordMetaId">>;
+  source: string;
+}
+
 export class WordLibraryRepository {
   constructor(
     private readonly db: AppDatabase,
@@ -64,10 +73,10 @@ export class WordLibraryRepository {
     return this.idGenerator.now();
   }
 
-  async list(query: WordListQuery): Promise<WordEntryRow[]> {
+  async list(query: WordListQuery): Promise<WordEntryWithSensesRow[]> {
     const filters = [];
     if (query.keyword) {
-      filters.push(sql`(${wordEntries.word} ilike ${`%${query.keyword}%`} OR ${wordEntries.lemma} ilike ${`%${query.keyword}%`} OR ${wordEntries.meaningCn} ilike ${`%${query.keyword}%`} OR ${wordEntries.meaningEn} ilike ${`%${query.keyword}%`})`);
+      filters.push(sql`(${wordEntries.word} ilike ${`%${query.keyword}%`} OR ${wordEntries.lemma} ilike ${`%${query.keyword}%`} OR ${wordEntries.meaningCn} ilike ${`%${query.keyword}%`} OR EXISTS (SELECT 1 FROM ${wordSenses} WHERE ${wordSenses.wordId} = ${wordEntries.id} AND ${wordSenses.definition} ilike ${`%${query.keyword}%`}))`);
     }
     if (query.lemma) {
       filters.push(ilike(wordEntries.lemma, `%${query.lemma}%`));
@@ -88,7 +97,8 @@ export class WordLibraryRepository {
       filters.push(eq(wordEntries.isExcluded, query.isExcluded));
     }
     if (query.hasMeaning !== undefined) {
-      filters.push(query.hasMeaning ? sql`${wordEntries.meaningCn} IS NOT NULL OR ${wordEntries.meaningEn} IS NOT NULL` : sql`${wordEntries.meaningCn} IS NULL AND ${wordEntries.meaningEn} IS NULL`);
+      const hasSense = sql`EXISTS (SELECT 1 FROM ${wordSenses} WHERE ${wordSenses.wordId} = ${wordEntries.id})`;
+      filters.push(query.hasMeaning ? sql`${wordEntries.meaningCn} IS NOT NULL OR ${hasSense}` : sql`${wordEntries.meaningCn} IS NULL AND NOT ${hasSense}`);
     }
     if (query.hasAudio !== undefined) {
       filters.push(query.hasAudio ? sql`${wordEntries.audioUrl} IS NOT NULL` : sql`${wordEntries.audioUrl} IS NULL`);
@@ -121,16 +131,17 @@ export class WordLibraryRepository {
       updatedAt: wordEntries.updatedAt,
       word: wordEntries.word,
     }[query.sortBy ?? "createdAt"];
-    return this.db
+    const rows = await this.db
       .select()
       .from(wordEntries)
       .where(where)
       .orderBy(query.sortOrder === "asc" ? sortColumn : desc(sortColumn))
       .limit(query.limit)
       .offset(query.offset);
+    return this.withSenses(rows);
   }
 
-  async listPublished(limit: number, offset: number, difficultyLevel?: number): Promise<WordEntryRow[]> {
+  async listPublished(limit: number, offset: number, difficultyLevel?: number): Promise<WordEntryWithSensesRow[]> {
     const filters = [
       eq(wordEntries.publishStatus, "published"),
       eq(wordEntries.reviewStatus, "approved"),
@@ -140,7 +151,8 @@ export class WordLibraryRepository {
     if (difficultyLevel !== undefined) {
       filters.push(eq(wordEntries.difficultyLevel, difficultyLevel));
     }
-    return this.db.select().from(wordEntries).where(and(...filters)).orderBy(wordEntries.difficultyLevel, wordEntries.word).limit(limit).offset(offset);
+    const rows = await this.db.select().from(wordEntries).where(and(...filters)).orderBy(wordEntries.difficultyLevel, wordEntries.word).limit(limit).offset(offset);
+    return this.withSenses(rows);
   }
 
   async findById(id: EntityId): Promise<WordEntryRow | undefined> {
@@ -223,6 +235,33 @@ export class WordLibraryRepository {
     return this.db.query.wordMeta.findFirst({ where: eq(wordMeta.id, id) });
   }
 
+  async listSensesByWordIds(wordIds: EntityId[]): Promise<WordSenseRow[]> {
+    if (wordIds.length === 0) {
+      return [];
+    }
+    return this.db
+      .select()
+      .from(wordSenses)
+      .where(inArray(wordSenses.wordId, wordIds))
+      .orderBy(wordSenses.wordId, wordSenses.senseIndex, wordSenses.definitionIndex);
+  }
+
+  async wordHasSenses(wordId: EntityId): Promise<boolean> {
+    const [row] = await this.db.select({ id: wordSenses.id }).from(wordSenses).where(eq(wordSenses.wordId, wordId)).limit(1);
+    return row !== undefined;
+  }
+
+  async listSensesByMetaIds(metaIds: EntityId[]): Promise<WordSenseRow[]> {
+    if (metaIds.length === 0) {
+      return [];
+    }
+    return this.db
+      .select()
+      .from(wordSenses)
+      .where(inArray(wordSenses.wordMetaId, metaIds))
+      .orderBy(wordSenses.wordMetaId, wordSenses.senseIndex, wordSenses.definitionIndex);
+  }
+
   async upsertMetaRows(rows: Array<Omit<WordMetaInsert, "id" | "createdAt" | "updatedAt">>): Promise<WordMetaImportStats> {
     const chunkSize = 250;
     let created = 0;
@@ -286,5 +325,56 @@ export class WordLibraryRepository {
       linked += result.length;
     }
     return linked;
+  }
+
+  async replaceSensesFromDictionaryApi(inputs: WordSenseSourceInput[]): Promise<number> {
+    if (inputs.length === 0) {
+      return 0;
+    }
+    const normalizedWords = [...new Set(inputs.map((input) => input.normalizedWord))];
+    const metaRows = await this.db
+      .select({ id: wordMeta.id, normalizedWord: wordMeta.normalizedWord, source: wordMeta.source, wordId: wordMeta.wordId })
+      .from(wordMeta)
+      .where(inArray(wordMeta.normalizedWord, normalizedWords));
+    const byKey = new Map(metaRows.map((row) => [`${row.source}:${row.normalizedWord}`, row]));
+    const now = this.now();
+    let inserted = 0;
+
+    for (const input of inputs) {
+      const meta = byKey.get(`${input.source}:${input.normalizedWord}`);
+      if (!meta?.wordId) {
+        continue;
+      }
+      await this.db.delete(wordSenses).where(eq(wordSenses.wordMetaId, meta.id));
+      if (input.senses.length === 0) {
+        continue;
+      }
+      await this.db.insert(wordSenses).values(
+        input.senses.map((sense) => ({
+          ...sense,
+          createdAt: now,
+          id: this.nextId(),
+          updatedAt: now,
+          wordId: meta.wordId as EntityId,
+          wordMetaId: meta.id,
+        })),
+      );
+      inserted += input.senses.length;
+    }
+
+    return inserted;
+  }
+
+  private async withSenses(rows: WordEntryRow[]): Promise<WordEntryWithSensesRow[]> {
+    if (rows.length === 0) {
+      return [];
+    }
+    const senses = await this.listSensesByWordIds(rows.map((row) => row.id));
+    const sensesByWordId = new Map<string, WordSenseRow[]>();
+    for (const sense of senses) {
+      const key = String(sense.wordId);
+      sensesByWordId.set(key, [...(sensesByWordId.get(key) ?? []), sense]);
+    }
+    return rows.map((row) => ({ ...row, senses: sensesByWordId.get(String(row.id)) ?? [] }));
   }
 }

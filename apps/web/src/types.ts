@@ -35,6 +35,7 @@ export interface Course {
   sceneId?: string | null;
   title: string;
   description?: string | null;
+  lockReason?: string | null;
   level?: number;
   publishStatus: PublishStatus;
   sentenceCount?: number;
@@ -57,15 +58,29 @@ export interface Sentence {
   reviewStatus?: ReviewStatus;
 }
 
+export interface WordSense {
+  antonyms: string[];
+  definition: string;
+  definitionIndex: number;
+  example: string | null;
+  partOfSpeech: string;
+  rawDefinition?: JsonRecord;
+  senseIndex: number;
+  source: string;
+  synonyms: string[];
+  wordId?: string;
+  wordMetaId?: string | null;
+  wordSenseId: string;
+}
+
 export interface WordEntry {
   wordId: string;
   word: string;
   lemma?: string;
   phonetic?: string | null;
   meaningCn?: string | null;
-  meaningEn?: string | null;
   audioUrl?: string | null;
-  partOfSpeech?: string | null;
+  senses?: WordSense[];
   frequencyCount?: number | null;
   cdCount?: number | null;
   frequencyLow?: number | null;
@@ -120,7 +135,8 @@ export interface WordMeta {
   meanings: JsonRecord[];
   normalizedWord: string;
   phonetics: JsonRecord[];
-  rawPayload: JsonRecord | JsonRecord[];
+  rawPayload?: JsonRecord | JsonRecord[];
+  senses?: WordSense[];
   source: string;
   sourceUrl: string | null;
   updatedAt: string;
@@ -162,4 +178,21 @@ export interface DailyTask {
   strategyVersion?: string;
   summary?: JsonRecord;
   items?: Array<JsonRecord & { itemType?: string; status?: string }>;
+}
+
+export type ContinueLearningPracticeType = "audio_meaning" | "review";
+export type ContinueLearningPrioritySource = "due_review" | "yellow_consolidation" | "red_activation" | "next_unlocked_batch";
+
+export interface ContinueLearningItem extends JsonRecord {
+  practiceType: ContinueLearningPracticeType;
+  prioritySource: ContinueLearningPrioritySource;
+  word?: string;
+  wordId: string;
+}
+
+export interface ContinueLearningResponse {
+  emptyReasons: string[];
+  hasMore: boolean;
+  items: ContinueLearningItem[];
+  limit: number;
 }

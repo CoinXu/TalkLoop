@@ -17,7 +17,7 @@ import RepeatIcon from "@mui/icons-material/Repeat";
 import SpellcheckIcon from "@mui/icons-material/Spellcheck";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import { useMemo, useState } from "react";
-import type { DailyTask, JsonRecord, Sentence, UserSession, VocabularyOverview, WordEntry } from "../../../types";
+import type { ContinueLearningItem, ContinueLearningResponse, DailyTask, JsonRecord, Sentence, UserSession, VocabularyOverview, WordEntry } from "../../../types";
 
 type DailyTaskItem = JsonRecord & {
   dailyTaskItemId?: string;
@@ -29,8 +29,11 @@ type DailyTaskItem = JsonRecord & {
 };
 
 type TodayPanelProps = {
+  continueLearning: ContinueLearningResponse | null;
   dailyTask: DailyTask | null;
   disabled: boolean;
+  onContinueLearning: () => Promise<ContinueLearningResponse>;
+  onPracticeContinueLearning: (item: ContinueLearningItem, result: PracticeResult) => Promise<void>;
   onPracticeTask: (item: DailyTaskItem, result: PracticeResult) => Promise<void>;
   onResetDailyTask: () => Promise<void>;
   onResetUserSession: () => void;
@@ -48,8 +51,11 @@ export type PracticeResult = {
 };
 
 export function TodayPanel({
+  continueLearning,
   dailyTask,
   disabled,
+  onContinueLearning,
+  onPracticeContinueLearning,
   onPracticeTask,
   onResetDailyTask,
   onResetUserSession,
@@ -64,6 +70,9 @@ export function TodayPanel({
   const [refreshingDailyTask, setRefreshingDailyTask] = useState(false);
   const [resettingDailyTask, setResettingDailyTask] = useState(false);
   const [submittingTaskId, setSubmittingTaskId] = useState<string | null>(null);
+  const [loadingContinueLearning, setLoadingContinueLearning] = useState(false);
+  const [continueFeedback, setContinueFeedback] = useState<{ message: string; severity: "success" | "warning"; taskId?: string } | null>(null);
+  const [locallyCompletedContinueKeys, setLocallyCompletedContinueKeys] = useState<Set<string>>(() => new Set());
   const [readyForNextCategory, setReadyForNextCategory] = useState(true);
   const [activeTaskType, setActiveTaskType] = useState<string | null>(null);
   const [locallyCompletedTaskKeys, setLocallyCompletedTaskKeys] = useState<Set<string>>(() => new Set());
@@ -91,6 +100,12 @@ export function TodayPanel({
   const progressValue = taskItems.length > 0 ? Math.round((completedCount / taskItems.length) * 100) : 0;
   const wordMap = useMemo(() => new Map(words.map((word) => [word.wordId, word])), [words]);
   const sentenceMap = useMemo(() => new Map(sentences.map((sentence) => [sentence.sentenceId, sentence])), [sentences]);
+  const dailyTaskCompleted = taskItems.length > 0 && completedCount >= taskItems.length;
+  const showContinueLearning = hasVocabulary && (dailyTaskCompleted || (taskItems.length === 0 && !staleEmptyTask));
+  const continueItems = continueLearning?.items ?? [];
+  const pendingContinueItems = continueItems.filter((item) => !locallyCompletedContinueKeys.has(continueTaskKey(item)));
+  const currentContinueItem = pendingContinueItems[0];
+  const currentContinueWord = currentContinueItem ? wordMap.get(currentContinueItem.wordId) : undefined;
 
   async function submitTask(item: DailyTaskItem, result: PracticeResult): Promise<void> {
     const key = taskKey(item);
@@ -150,6 +165,42 @@ export function TodayPanel({
       setPlanFeedback({ message: "刷新失败，请确认后端服务可用后重试。", severity: "warning" });
     } finally {
       setRefreshingDailyTask(false);
+    }
+  }
+
+  async function startContinueLearning(): Promise<void> {
+    setLoadingContinueLearning(true);
+    setContinueFeedback({ message: "正在获取下一组可练内容。", severity: "success" });
+    try {
+      const response = await onContinueLearning();
+      setLocallyCompletedContinueKeys(new Set());
+      setContinueFeedback({
+        message: response.items.length > 0 ? `已生成 ${response.items.length} 个继续学习任务。` : "暂时没有可练内容，请查看下方原因。",
+        severity: response.items.length > 0 ? "success" : "warning",
+      });
+    } catch {
+      setContinueFeedback({ message: "继续学习加载失败，请确认后端服务可用后重试。", severity: "warning" });
+    } finally {
+      setLoadingContinueLearning(false);
+    }
+  }
+
+  async function submitContinueTask(item: ContinueLearningItem, result: PracticeResult): Promise<void> {
+    const key = continueTaskKey(item);
+    setSubmittingTaskId(key);
+    setContinueFeedback({ message: "正在提交继续学习结果。", severity: "success", taskId: key });
+    try {
+      await onPracticeContinueLearning(item, result);
+      setLocallyCompletedContinueKeys((current) => new Set(current).add(key));
+      setContinueFeedback({
+        message: result.isCorrect ? "回答正确，本题已完成。" : "已提交，本次尝试已记录。",
+        severity: result.isCorrect ? "success" : "warning",
+        taskId: key,
+      });
+    } catch {
+      setContinueFeedback({ message: "提交失败，请重试。", severity: "warning", taskId: key });
+    } finally {
+      setSubmittingTaskId(null);
     }
   }
 
@@ -245,6 +296,24 @@ export function TodayPanel({
             wordMap={wordMap}
           />
         )
+      ) : null}
+
+      {showContinueLearning ? (
+        <ContinueLearningPanel
+          disabled={disabled || loadingContinueLearning}
+          feedback={continueFeedback}
+          hasMore={continueLearning?.hasMore ?? false}
+          items={continueItems}
+          loading={loadingContinueLearning}
+          onLoad={startContinueLearning}
+          onPracticeTask={submitContinueTask}
+          pendingCount={pendingContinueItems.length}
+          submittingTaskId={submittingTaskId}
+          currentItem={currentContinueItem}
+          word={currentContinueWord}
+          words={words}
+          emptyReasons={continueLearning?.emptyReasons ?? []}
+        />
       ) : null}
 
       {taskItems.length > 0 ? (
@@ -385,6 +454,85 @@ function NextTaskGate({
   );
 }
 
+function ContinueLearningPanel({
+  currentItem,
+  disabled,
+  emptyReasons,
+  feedback,
+  hasMore,
+  items,
+  loading,
+  onLoad,
+  onPracticeTask,
+  pendingCount,
+  submittingTaskId,
+  word,
+  words,
+}: {
+  currentItem?: ContinueLearningItem | undefined;
+  disabled: boolean;
+  emptyReasons: string[];
+  feedback: { message: string; severity: "success" | "warning"; taskId?: string } | null;
+  hasMore: boolean;
+  items: ContinueLearningItem[];
+  loading: boolean;
+  onLoad: () => Promise<void>;
+  onPracticeTask: (item: ContinueLearningItem, result: PracticeResult) => Promise<void>;
+  pendingCount: number;
+  submittingTaskId: string | null;
+  word?: WordEntry | undefined;
+  words: WordEntry[];
+}): JSX.Element {
+  const taskItem = currentItem ? continueItemToDailyTaskItem(currentItem) : undefined;
+  const currentKey = currentItem ? continueTaskKey(currentItem) : null;
+
+  return (
+    <Card className="primaryPanel">
+      <CardContent>
+        <Stack direction={{ md: "row", xs: "column" }} spacing={1.5} sx={{ justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="h6">继续学习</Typography>
+            <Typography color="text.secondary" variant="body2">今日推荐完成后，可以主动获取下一组可练词；每组完成后再决定是否继续。</Typography>
+          </Box>
+          <Button disabled={disabled || loading} onClick={onLoad} startIcon={<TaskAltIcon />} variant={items.length > 0 ? "outlined" : "contained"}>
+            {loading ? "加载中" : items.length > 0 ? "再取一组" : "继续学习"}
+          </Button>
+        </Stack>
+
+        {feedback ? <Alert severity={feedback.severity} sx={{ mt: 1.5 }}>{feedback.message}</Alert> : null}
+
+        {items.length === 0 && emptyReasons.length > 0 ? (
+          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mt: 1.5 }}>
+            {emptyReasons.map((reason) => <Chip key={reason} label={continueEmptyReasonLabel(reason)} size="small" variant="outlined" />)}
+          </Stack>
+        ) : null}
+
+        {taskItem && currentItem ? (
+          <Box sx={{ mt: 1.5 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mb: 1 }}>
+              <Chip color="primary" label={`剩余 ${pendingCount}/${items.length}`} size="small" />
+              <Chip label={prioritySourceLabel(currentItem.prioritySource)} size="small" variant="outlined" />
+              {hasMore ? <Chip color="warning" label="后面还有可练内容" size="small" variant="outlined" /> : null}
+            </Stack>
+            <PracticeCard
+              disabled={disabled || Boolean(currentKey && submittingTaskId === currentKey)}
+              item={taskItem}
+              onPracticeTask={(_, result) => onPracticeTask(currentItem, result)}
+              word={word}
+              words={words}
+            />
+          </Box>
+        ) : items.length > 0 ? (
+          <Stack spacing={1.5} sx={{ alignItems: "center", py: 2, textAlign: "center" }}>
+            <Chip color="success" label="本组已完成" size="small" />
+            <Typography color="text.secondary">是否再练一组？点击“再取一组”后才会生成下一批。</Typography>
+          </Stack>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function TaskQueueOverview({
   items,
   sentenceMap,
@@ -510,8 +658,9 @@ function PracticeCard({
     );
   }
 
-  const correctAnswer = word?.meaningCn ?? word?.meaningEn ?? null;
+  const correctAnswer = wordMeaningText(word) || null;
   const options = meaningOptions(word, words);
+  const canAnswerMeaning = Boolean(correctAnswer);
   return (
     <Box sx={{ bgcolor: "action.hover", borderRadius: 1, mt: 2, p: { md: 2, xs: 1.25 } }}>
       <Typography color="text.secondary" variant="body2">{item.itemType === "review_word" ? "看单词，选择正确释义" : "先听音频，选择对应释义"}</Typography>
@@ -521,26 +670,39 @@ function PracticeCard({
             <Typography sx={{ overflowWrap: "anywhere" }} variant="h4">{word.word}</Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mt: 0.75 }}>
               {word.phonetic ? <Chip label={word.phonetic} size="small" variant="outlined" /> : null}
-              {word.partOfSpeech ? <Chip label={word.partOfSpeech} size="small" /> : null}
+              {wordPartOfSpeechText(word) ? <Chip label={wordPartOfSpeechText(word)} size="small" /> : null}
               {word.difficultyLevel ? <Chip label={`难度 ${word.difficultyLevel}`} size="small" /> : null}
             </Stack>
           </Box>
           {word.audioUrl ? <AudioBlock label="单词音频" src={word.audioUrl} /> : <Alert severity="warning">该词没有可播放音频，只能先按释义练习。</Alert>}
-          {word.meaningEn ? <Typography color="text.secondary" variant="body2">{word.meaningEn}</Typography> : null}
-          <Stack spacing={1}>
-            {options.map((option) => (
+          {word.senses?.[0]?.definition ? <Typography color="text.secondary" variant="body2">{word.senses[0].definition}</Typography> : null}
+          {canAnswerMeaning ? (
+            <Stack spacing={1}>
+              {options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option}
+                  onClick={() => onPracticeTask(item, { correctAnswer, isCorrect: option === correctAnswer, selectedAnswer: option })}
+                  size="large"
+                  sx={{ justifyContent: "flex-start", textAlign: "left", whiteSpace: "normal" }}
+                  variant="outlined"
+                >
+                  {option}
+                </Button>
+              ))}
+            </Stack>
+          ) : (
+            <Stack spacing={1}>
+              <Alert severity="warning">该词缺少释义，暂不能完成选择题。请跳过该任务，后台补全词条后再练。</Alert>
               <Button
                 disabled={disabled}
-                key={option}
-                onClick={() => onPracticeTask(item, { correctAnswer, isCorrect: option === correctAnswer, selectedAnswer: option })}
-                size="large"
-                sx={{ justifyContent: "flex-start", textAlign: "left", whiteSpace: "normal" }}
+                onClick={() => onPracticeTask(item, { correctAnswer: null, isCorrect: false, selectedAnswer: null })}
                 variant="outlined"
               >
-                {option}
+                跳过该任务
               </Button>
-            ))}
-          </Stack>
+            </Stack>
+          )}
         </Stack>
       ) : (
         <Alert severity="warning" sx={{ mt: 1 }}>当前任务只有词 ID，缺少词条详情，暂不能开始听音辨义。</Alert>
@@ -558,6 +720,38 @@ function AudioBlock({ label, src }: { label: string; src?: null | string | undef
   );
 }
 
+function continueItemToDailyTaskItem(item: ContinueLearningItem): DailyTaskItem {
+  return {
+    ...item,
+    itemType: item.practiceType === "review" ? "review_word" : "audio_meaning",
+    status: "pending",
+  };
+}
+
+function continueTaskKey(item: ContinueLearningItem): string {
+  return `continue-${item.practiceType}-${item.prioritySource}-${item.wordId}`;
+}
+
+function prioritySourceLabel(source: string): string {
+  if (source === "due_review") return "到期复习";
+  if (source === "yellow_consolidation") return "巩固听觉词";
+  if (source === "red_activation") return "待激活词";
+  if (source === "next_unlocked_batch") return "下一批已解锁词";
+  return source;
+}
+
+function continueEmptyReasonLabel(reason: string): string {
+  if (reason === "no_user_vocabulary") return "还没有激活词库";
+  if (reason === "no_available_content") return "没有可练内容";
+  if (reason === "no_due_review_words") return "没有到期复习词";
+  if (reason === "no_yellow_words") return "没有巩固中听觉词";
+  if (reason === "no_unlocked_red_words") return "没有已解锁待激活词";
+  if (reason === "no_next_unlocked_batch") return "没有下一批已解锁词";
+  if (reason === "content_not_published") return "内容未发布或未审核";
+  if (reason === "no_audio") return "缺少可播放音频";
+  return reason;
+}
+
 function taskTypeMeta(itemType?: string): { icon: JSX.Element; label: string } {
   if (itemType === "audio_meaning") return { icon: <HeadphonesIcon fontSize="small" />, label: "听音辨义" };
   if (itemType === "review_word") return { icon: <SpellcheckIcon fontSize="small" />, label: "词汇复习" };
@@ -566,14 +760,22 @@ function taskTypeMeta(itemType?: string): { icon: JSX.Element; label: string } {
 }
 
 function meaningOptions(target: WordEntry | undefined, words: WordEntry[]): string[] {
-  const correct = target?.meaningCn ?? target?.meaningEn;
+  const correct = wordMeaningText(target);
   if (!correct) return [];
   const distractors = words
     .filter((word) => word.wordId !== target?.wordId)
-    .map((word) => word.meaningCn ?? word.meaningEn)
+    .map(wordMeaningText)
     .filter((value): value is string => Boolean(value && value !== correct))
     .slice(0, 3);
   return [correct, ...distractors];
+}
+
+function wordMeaningText(word: WordEntry | undefined): string {
+  return word?.meaningCn ?? word?.senses?.[0]?.definition ?? "";
+}
+
+function wordPartOfSpeechText(word: WordEntry): string {
+  return [...new Set((word.senses ?? []).map((sense) => sense.partOfSpeech).filter(Boolean))].join(", ");
 }
 
 function taskPreview(item: DailyTaskItem, wordMap: Map<string, WordEntry>, sentenceMap: Map<string, Sentence>): string {

@@ -48,6 +48,10 @@ export const userListQuerySchema = z.object({
   wordId: snowflakeIdSchema.optional(),
 });
 
+export const continueLearningQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(10).default(6),
+});
+
 export const versionedConfigListQuerySchema = listQuerySchema.extend({
   version: z.string().min(1).optional(),
 });
@@ -276,13 +280,31 @@ export const vocabularyOverviewResponseSchema = z.object({
 
 export const userVocabularyResponseSchema = z.object({
   activationStatus: z.string(),
+  audioUrl: z.string().nullable().optional(),
   avoidUntil: z.string().nullable(),
   consecutiveCorrect: z.number(),
   createdAt: z.string(),
+  difficultyLevel: z.number().nullable().optional(),
   failureCount: z.number(),
+  frequencyCount: z.number().nullable().optional(),
   lastPracticeType: z.string().nullable(),
+  lemma: z.string().optional(),
+  lg10wf: z.string().nullable().optional(),
+  meaningCn: z.string().nullable().optional(),
   nextReviewAt: z.string().nullable(),
+  phonetic: z.string().nullable().optional(),
   sentenceExposures: z.number(),
+  senses: z.array(z.object({
+    antonyms: z.array(z.string()),
+    definition: z.string(),
+    definitionIndex: z.number(),
+    example: z.string().nullable(),
+    partOfSpeech: z.string(),
+    senseIndex: z.number(),
+    source: z.string(),
+    synonyms: z.array(z.string()),
+    wordSenseId: z.string(),
+  })).optional(),
   skipCount: z.number(),
   source: z.string(),
   spokenCount: z.number(),
@@ -293,9 +315,21 @@ export const userVocabularyResponseSchema = z.object({
   userId: z.string(),
   userVocabularyEntryId: z.string(),
   weakPronunciations: z.array(z.string()),
+  word: z.string().optional(),
   wordId: z.string(),
 });
 export const userVocabularyListResponseSchema = z.object({ items: z.array(userVocabularyResponseSchema) });
+
+export const continueLearningItemResponseSchema = userVocabularyResponseSchema.extend({
+  practiceType: z.enum(["audio_meaning", "review"]),
+  prioritySource: z.enum(["due_review", "yellow_consolidation", "red_activation", "next_unlocked_batch"]),
+});
+export const continueLearningResponseSchema = z.object({
+  emptyReasons: z.array(z.string()),
+  hasMore: z.boolean(),
+  items: z.array(continueLearningItemResponseSchema),
+  limit: z.number(),
+});
 
 export const userVocabularyCorrectionRequestSchema = z.object({
   activationStatus: z.enum(["red", "yellow", "green"]),

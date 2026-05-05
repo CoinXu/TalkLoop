@@ -20,7 +20,7 @@ v1.0 面向“阅读认识，但听不出、说不出”的英语学习者。产
 | M2 | word-library-system | SUBTLEXus 词表、难度分级、场景标签、用户词库基础 | M2-word-library-system.md |
 | M3 | corpus-course-system | 句库、课程、音频规范、内容生产和发布 | M3-corpus-course-system.md |
 | M4 | auto-annotation-pipeline | 听力陷阱、干扰项、目标词、意群断句自动标注与审核 | M4-auto-annotation-pipeline.md |
-| M5 | level-assessment | 自我描述、词汇量验证测试、持续校准 | M5-level-assessment.md |
+| M5 | level-assessment | 基于词库词条的自适应水平评估、词频边界和持续校准 | M5-level-assessment.md |
 | M6 | user-vocabulary-runtime | 用户词库状态、扩展、SRS、运行时记录 | M6-user-vocabulary-runtime.md |
 | M7 | word-activation-practice | 听音辨义、听句辨词、跟读激活、状态流转 | M7-word-activation-practice.md |
 | M8 | daily-task-visualization | 每日激活任务、优先级、进度和词汇可视化 | M8-daily-task-visualization.md |
@@ -33,7 +33,7 @@ v1.0 面向“阅读认识，但听不出、说不出”的英语学习者。产
 - M2 输出词表字段、难度等级、场景标签和用户词库基础字段，供 M3-M10 使用。
 - M3 使用 M2 的词表和场景标签生产句子、课程和音频，供 M4、M7、M9、M10 使用。
 - M4 使用 M2/M3 的词表和句库生成标注，输出听力陷阱、干扰项、`target_words`、`bonus_words`、`phrase_chunks`，供 M2/M3/M7/M9 使用。
-- M5 使用 M2 词频分层生成评估结果，输出 `vocabularyEstimate` 和词频边界，供 M6 初始化用户词库。
+- M5 使用 M2 已发布词条、释义、难度和词频桶生成自适应评估结果，输出 `vocabularyEstimate`、`confidenceLevel`、`frontierBand` 和已解锁层级，供 M6 初始化用户词库。
 - M6 使用 M2/M5 生成用户词库运行时状态，输出 `activation_status`、SRS、练习记录，供 M7/M8/M10 使用。
 - M7 使用 M2/M3/M4/M6 执行听音辨义和听句辨词，并使用 M9 的跟读结果完成活跃词判定，输出状态升级/降级和练习结果，供 M8/M10 使用。
 - M8 使用 M6/M7 的状态和优先级算法生成每日任务与可视化。
@@ -63,7 +63,7 @@ M7 word-activation-practice ─────────────────�
 
 - F0：词表层、语料层、用户词库层。
 - F0：词库自动标注算法和人工抽检审核。
-- F1：自我描述、词汇量验证测试、持续校准。
+- F1：基于词库词条的水平评估、词频边界识别、持续校准。
 - F2：单词激活状态、状态流转、三类激活练习、每日任务和可视化。
 - F3：听读课程、A/B/C 三种练习模式、录音回放、文本匹配、波形对比、语速反馈、意群练习、课程报告。
 - 管理后台：每个功能模块对应后台配置、内容管理、审核、发布、监控、用户状态查看或修正、审计。
@@ -82,10 +82,13 @@ M7 word-activation-practice ─────────────────�
 - 模块数：10
 - 总验收清单：`acceptance.md`
 - 冲突审阅：`conflicts.md`
-- 总验收条数：70
+- M4 实现级说明：`auto-annotation-product-spec.md`
+- 总验收条数：93
 - 冲突修复数：0
 
 ## 决策记录
 
 - 2026-05-03：以 `docs/tmp/v0.3.md` 重建 v1.0 PRD。原因：用户确认需求变化，旧同类需求全部废弃。
 - 2026-05-03：每个功能模块都必须包含管理后台能力。原因：词库、语料、标注、评估和练习规则都需要后台维护、审核和排障闭环。
+- 2026-05-05：水平评估改为基于词库词条的自适应抽样测试。原因：用户要求用词库里的词来测试，评估结果应直接服务用户词库初始化。
+- 2026-05-05：补充 M4 词库自动标注算法实现级产品说明。原因：`docs/tmp/v0.3.md` 中已有详细算法，需要转化为 FE/BE 可实现的产品文档。

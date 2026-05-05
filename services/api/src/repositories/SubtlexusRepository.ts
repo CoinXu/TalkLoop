@@ -227,8 +227,6 @@ export class SubtlexusRepository {
           lg10cd: row.lg10Cd,
           lg10wf: row.lg10Wf,
           meaningCn: null,
-          meaningEn: null,
-          partOfSpeech: null,
           phonetic: null,
           publishStatus: "draft",
           reviewStatus: "pending_review",

@@ -74,3 +74,26 @@
 - Admin public registration is intentionally not provided; M1 follows PRD by using existing `super_admin` accounts to create, disable, and reset admin accounts.
 - `/admin/dashboard` now renders the admin login shell when there is no admin session and does not poll `/admin/auth/me`.
 - Backend/database cleanup was not performed by the frontend role; no production or real-data destructive operation was executed.
+
+## Backend Update 2026-05-05
+
+- Added public `GET /learning/continue-learning?limit=6` for post-daily-task continuation batches.
+- Continue-learning candidates are ordered by due green reviews, yellow consolidation, then red activation words; each item includes `practiceType` and `prioritySource`.
+- Continue-learning filters out unpublished, unapproved, excluded, or audio-missing words and returns specific `emptyReasons`.
+- Practice result submission remains on `/learning/practice/activation-attempts`, so daily-task and continue-learning results share the same activation state and SRS transition path.
+
+## Frontend Bugfix 2026-05-05
+
+- Listen-repeat attempts now omit empty `textMatchRate` values instead of sending `null`, avoiding backend numeric-field failures for unscored manual submissions.
+
+## Backend Word Sense Update 2026-05-05
+
+- Added `word_senses` as a structured DictionaryAPI sense table keyed by word, metadata source, part of speech, and definition index.
+- DictionaryAPI imports now expand `meanings[].definitions[]` into `word_senses` while keeping `word_entries.meaningEn/partOfSpeech` as backwards-compatible summary fields.
+- Public word-meta and user vocabulary word responses now include optional structured `senses` for multi-part-of-speech dictionary display.
+
+## Backend Word Entry Cleanup 2026-05-05
+
+- Removed obsolete `word_entries.meaning_en` and `word_entries.part_of_speech`; structured meanings now live in `word_senses`.
+- Word entry list/detail responses now include `senses` directly, so clients do not need an extra word-meta request for dictionary meanings.
+- DictionaryAPI `derivedFields` now keeps only word identity, pronunciation, audio URL, and audio status.

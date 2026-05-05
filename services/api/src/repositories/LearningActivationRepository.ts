@@ -21,6 +21,7 @@ import {
   userVocabularyEvents,
   wordActivationAttempts,
   wordEntries,
+  wordSenses,
 } from "../infrastructure/database/schema.js";
 import type { SnowflakeIdGenerator } from "../infrastructure/SnowflakeIdGenerator.js";
 
@@ -30,6 +31,8 @@ export type SentenceRow = typeof corpusSentences.$inferSelect;
 export type AnnotationTaskRow = typeof annotationTasks.$inferSelect;
 export type AssessmentConfigRow = typeof assessmentConfigs.$inferSelect;
 export type UserVocabularyEntryRow = typeof userVocabularyEntries.$inferSelect;
+export type WordSenseRow = typeof wordSenses.$inferSelect;
+export type UserVocabularyWithWordRow = UserVocabularyEntryRow & { senses: WordSenseRow[]; wordEntry: WordRow };
 export type DailyTaskRow = typeof dailyTasks.$inferSelect;
 export type DailyTaskItemRow = typeof dailyTaskItems.$inferSelect;
 export type ListenRepeatAttemptRow = typeof listenRepeatAttempts.$inferSelect;
@@ -229,14 +232,33 @@ export class LearningActivationRepository {
       .limit(limit);
   }
 
-  async listUserVocabulary(query: UserVocabularyListQuery): Promise<UserVocabularyEntryRow[]> {
+  async listUserVocabulary(query: UserVocabularyListQuery): Promise<UserVocabularyWithWordRow[]> {
     const filters = [eq(userVocabularyEntries.userId, query.userId)];
     if (query.status) filters.push(eq(userVocabularyEntries.activationStatus, query.status));
     if (query.source) filters.push(eq(userVocabularyEntries.source, query.source));
     if (query.wordId) filters.push(eq(userVocabularyEntries.wordId, query.wordId));
     if (query.dueOnly) filters.push(sql`${userVocabularyEntries.nextReviewAt} <= now()`);
     if (query.skipCountMin !== undefined) filters.push(sql`${userVocabularyEntries.skipCount} >= ${query.skipCountMin}`);
-    return this.db.select().from(userVocabularyEntries).where(and(...filters)).orderBy(asc(userVocabularyEntries.activationStatus), desc(userVocabularyEntries.updatedAt)).limit(query.limit).offset(query.offset);
+    const rows = await this.db
+      .select({ entry: userVocabularyEntries, wordEntry: wordEntries })
+      .from(userVocabularyEntries)
+      .innerJoin(wordEntries, eq(wordEntries.id, userVocabularyEntries.wordId))
+      .where(and(...filters))
+      .orderBy(asc(userVocabularyEntries.activationStatus), desc(userVocabularyEntries.updatedAt))
+      .limit(query.limit)
+      .offset(query.offset);
+    if (rows.length === 0) return [];
+    const senses = await this.db
+      .select()
+      .from(wordSenses)
+      .where(inArray(wordSenses.wordId, rows.map((row) => row.entry.wordId)))
+      .orderBy(wordSenses.wordId, wordSenses.senseIndex, wordSenses.definitionIndex);
+    const sensesByWordId = new Map<string, WordSenseRow[]>();
+    for (const sense of senses) {
+      const key = String(sense.wordId);
+      sensesByWordId.set(key, [...(sensesByWordId.get(key) ?? []), sense]);
+    }
+    return rows.map((row) => ({ ...row.entry, senses: sensesByWordId.get(String(row.entry.wordId)) ?? [], wordEntry: row.wordEntry }));
   }
 
   async vocabularySummary(userId: string): Promise<Record<string, number>> {

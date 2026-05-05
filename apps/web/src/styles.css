@@ -405,15 +405,33 @@ audio {
 }
 
 .definitionBlock {
+  border-bottom: 1px solid #eef2f7;
   display: grid;
   gap: 10px;
   grid-template-columns: 28px minmax(0, 1fr);
+  padding-bottom: 12px;
+}
+
+.definitionBlock:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .definitionNumber {
   color: #64748b;
   font-weight: 700;
   text-align: right;
+}
+
+.definitionContent {
+  min-width: 0;
+}
+
+.definitionText {
+  display: block;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .exampleSentence {

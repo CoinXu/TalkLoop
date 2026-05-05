@@ -1,6 +1,7 @@
 import { requestFormData, requestJson } from "./client";
 import type {
   AdminSession,
+  ContinueLearningResponse,
   Course,
   CreateWordsFromSubtlexusResult,
   DailyTask,
@@ -35,26 +36,36 @@ export const learningApi = {
     requestJson<JsonRecord>("/learning/practice/activation-attempts", { body, method: "POST", requireSession: true }),
   courseReport: (body: JsonRecord) =>
     requestJson<JsonRecord>("/learning/course-reports", { body, method: "POST", requireSession: true }),
+  continueLearning: (query?: Record<string, QueryValue>) =>
+    requestJson<ContinueLearningResponse>(withQuery("/learning/continue-learning", { limit: 6, ...query }), { requireSession: true }),
   courses: () => requestJson<ListResponse<Course>>("/learning/courses"),
   dailyTask: () => requestJson<DailyTask>("/learning/daily-task", { requireSession: true }),
   resetDailyTask: (taskDate?: string) =>
     requestJson<DailyTask>(withQuery("/learning/daily-task/reset", { taskDate }), { method: "POST", requireSession: true }),
   listenRepeatAttempt: (body: JsonRecord) =>
-    requestJson<JsonRecord>("/learning/listen-repeat/attempts", { body, method: "POST", requireSession: true }),
+    requestJson<JsonRecord>("/learning/listen-repeat/attempts", { body: normalizeListenRepeatAttemptBody(body), method: "POST", requireSession: true }),
   scenes: () => requestJson<ListResponse<Scene>>("/learning/scenes"),
   sentences: (courseId?: string) =>
     requestJson<ListResponse<Sentence>>(courseId ? `/learning/sentences?courseId=${encodeURIComponent(courseId)}` : "/learning/sentences"),
   submitAssessment: (body: JsonRecord) =>
     requestJson<JsonRecord>("/learning/assessment/self-description", { body, method: "POST", requireSession: true }),
   vocabulary: () => requestJson<VocabularyOverview>("/learning/vocabulary", { requireSession: true }),
-  vocabularyWords: (status?: string) =>
-    requestJson<ListResponse<JsonRecord>>(`/learning/vocabulary/words${status ? `?status=${encodeURIComponent(status)}` : ""}`, {
+  vocabularyWords: (query?: Record<string, QueryValue>) =>
+    requestJson<ListResponse<JsonRecord>>(withQuery("/learning/vocabulary/words", { limit: 10, offset: 0, ...query }), {
       requireSession: true,
     }),
   wordMeta: (query?: Record<string, QueryValue>) =>
     requestJson<ListResponse<WordMeta>>(withQuery("/word-library/word-meta", { limit: 10, offset: 0, ...query })),
   words: () => requestJson<ListResponse<WordEntry>>(`/word-library/words${defaultListQuery}`),
 };
+
+function normalizeListenRepeatAttemptBody(body: JsonRecord): JsonRecord {
+  const output = { ...body };
+  if (output.textMatchRate === null || output.textMatchRate === undefined || output.textMatchRate === "") {
+    delete output.textMatchRate;
+  }
+  return output;
+}
 
 export const adminApi = {
   accounts: () => requestJson<ListResponse<JsonRecord>>(`/admin/accounts${defaultListQuery}`, { requireAdmin: true }),

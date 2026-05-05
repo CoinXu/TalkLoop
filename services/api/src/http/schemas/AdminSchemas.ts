@@ -91,7 +91,7 @@ export const adminAccountListResponseSchema = z.object({
   items: z.array(adminUserResponseSchema),
 });
 
-const auditValueSchema = z.record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.string()), z.record(z.string())]));
+const auditValueSchema = z.unknown();
 
 export const adminAuditLogResponseSchema = z.object({
   action: z.string(),

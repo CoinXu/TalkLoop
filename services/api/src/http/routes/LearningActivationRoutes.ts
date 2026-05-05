@@ -22,6 +22,8 @@ import {
   courseReportListResponseSchema,
   courseReportRequestSchema,
   courseReportResponseSchema,
+  continueLearningQuerySchema,
+  continueLearningResponseSchema,
   courseRequestSchema,
   courseResponseSchema,
   createCourseRequestSchema,
@@ -76,6 +78,8 @@ export class LearningActivationRoutes {
   vocabularyOverview(): void {}
   @Operation("Get today task")
   todayTask(): void {}
+  @Operation("Get continue learning batch")
+  continueLearning(): void {}
   @Operation("Reset today task")
   resetDailyTask(): void {}
   @Operation("Create word activation attempt")
@@ -127,6 +131,11 @@ export class LearningActivationRoutes {
     app.get("/learning/daily-task", { schema: RouteDocs.schema(this, "todayTask", { query: dateQuerySchema, response: { 200: dailyTaskResponseSchema } }) }, async (request) => {
       const query = dateQuerySchema.parse(request.query);
       return this.service.todayTask(this.currentUserId(request), query.taskDate ?? new Date().toISOString().slice(0, 10));
+    });
+
+    app.get("/learning/continue-learning", { schema: RouteDocs.schema(this, "continueLearning", { query: continueLearningQuerySchema, response: { 200: continueLearningResponseSchema } }) }, async (request) => {
+      const query = continueLearningQuerySchema.parse(request.query);
+      return this.service.continueLearning(this.currentUserId(request), query);
     });
 
     app.post("/learning/daily-task/reset", { schema: RouteDocs.schema(this, "resetDailyTask", { query: dateQuerySchema, response: { 200: dailyTaskResetResponseSchema } }) }, async (request) => {
