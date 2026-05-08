@@ -1,5 +1,6 @@
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import { AppConfig } from "./config/AppConfig.js";
 import { Database } from "./infrastructure/database/Database.js";
@@ -13,6 +14,7 @@ import { AdminService } from "./services/AdminService.js";
 import { ContentAdminService } from "./services/ContentAdminService.js";
 import { LearningActivationService } from "./services/LearningActivationService.js";
 import { WordLibraryService } from "./services/WordLibraryService.js";
+import { HearingTrapAlgorithm } from "./services/HearingTrapAlgorithm.js";
 import { AdminRoutes } from "./http/routes/AdminRoutes.js";
 import { ContentAdminRoutes } from "./http/routes/ContentAdminRoutes.js";
 import { LearningActivationRoutes } from "./http/routes/LearningActivationRoutes.js";
@@ -52,7 +54,8 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
   const adminService = new AdminService(adminRepository);
   const contentAdminService = new ContentAdminService(contentAdminRepository, adminService);
   const learningActivationService = new LearningActivationService(learningActivationRepository, adminService);
-  const wordLibraryService = new WordLibraryService(wordLibraryRepository, subtlexusRepository, adminService);
+  const hearingTrapAlgorithm = new HearingTrapAlgorithm(path.resolve(process.cwd(), "../../services/vocabulary/word/.data/cmudict-0.7b"));
+  const wordLibraryService = new WordLibraryService(wordLibraryRepository, subtlexusRepository, adminService, hearingTrapAlgorithm);
 
   await new AdminRoutes(adminService).register(app);
   await new ContentAdminRoutes(contentAdminService, adminService).register(app);

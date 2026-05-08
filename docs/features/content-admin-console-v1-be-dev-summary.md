@@ -26,18 +26,30 @@
 
 - `GET /admin/content/summary`
 - `GET|POST /admin/content/scenes`
-- `PATCH /admin/content/scenes/:id`
+- `GET|PATCH /admin/content/scenes/:id`
 - `GET|POST /admin/content/courses`
-- `PATCH /admin/content/courses/:id`
+- `GET|PATCH /admin/content/courses/:id`
 - `GET|POST /admin/content/sentences`
 - `GET|PATCH /admin/content/sentences/:id`
 - `POST /admin/content/status/batch`
 - `POST /admin/content/courses/:id/composition`
 - `POST /admin/content/imports/validate`
 - `POST /admin/content/imports/confirm`
+- `GET /admin/content/imports/:importBatchId`
+- `GET /admin/content/imports/:importBatchId/failures`
 - `GET|PUT /admin/content/audio/default`
 - `GET|POST /admin/content/publishing/validation`
 - `POST /admin/content/publishing/publish`
+
+## Backend Completion Update 2026-05-06
+
+- Added scene and course detail APIs so all primary content objects have detail endpoints with status and validation summaries.
+- Extended import APIs to accept JSON rows, JSON text, CSV text, and multipart-like file payload values.
+- Persisted import validation/confirmation results in `content_admin_settings` under `content_import:<importBatchId>`.
+- Added import result lookup and failed-row CSV download endpoints.
+- Extended publishing validation to accept `targets[]` for object-level batch validation results.
+- Updated integration smoke coverage for `/admin/content/summary`, import validation, and import result lookup.
+- Fixed smoke test SUBTLEXus fixture path fallback to use the current `services/vocabulary/subtlexus/` location.
 
 ## Migration
 

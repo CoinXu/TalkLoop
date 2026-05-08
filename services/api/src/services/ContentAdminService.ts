@@ -10,6 +10,7 @@ type ValidationSeverity = "blocking" | "warning";
 const contentStatuses = ["draft", "published", "unpublished", "archived"] as const;
 const audioStatuses = ["missing", "ready", "failed", "default", "unreachable"] as const;
 const defaultAudioSettingKey = "default_audio";
+const importSettingPrefix = "content_import:";
 
 export class ContentAdminService {
   constructor(
@@ -38,6 +39,11 @@ export class ContentAdminService {
   async listScenes(admin: CurrentAdmin, query: Parameters<ContentAdminRepository["listScenes"]>[0]): Promise<JsonRecord[]> {
     this.adminService.assertPermission(admin, "admin.content.read");
     return Promise.all((await this.repository.listScenes(query)).map((row) => this.scene(row)));
+  }
+
+  async getScene(admin: CurrentAdmin, id: EntityId): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.content.read");
+    return this.scene(await this.requireScene(id));
   }
 
   async createScene(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
@@ -78,6 +84,11 @@ export class ContentAdminService {
   async listCourses(admin: CurrentAdmin, query: Parameters<ContentAdminRepository["listCourses"]>[0]): Promise<JsonRecord[]> {
     this.adminService.assertPermission(admin, "admin.content.read");
     return Promise.all((await this.repository.listCourses(query)).map((row) => this.course(row)));
+  }
+
+  async getCourse(admin: CurrentAdmin, id: EntityId): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.content.read");
+    return this.course(await this.requireCourse(id));
   }
 
   async createCourse(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
@@ -213,7 +224,8 @@ export class ContentAdminService {
 
   async validateImport(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
     this.adminService.assertPermission(admin, "admin.content.write");
-    const rows = arrayRecord(input.rows);
+    const importInput = this.importInput(input);
+    const rows = importInput.rows;
     const results = [];
     for (const [index, row] of rows.entries()) {
       const errors = [];
@@ -228,31 +240,73 @@ export class ContentAdminService {
       }
       results.push({ errors, rowIndex: index, severity: errors.length > 0 ? "error" : warnings.length > 0 ? "warning" : "ok", warnings });
     }
-    return {
+    const output = {
       canImport: results.every((row) => row.severity !== "error"),
       errorCount: results.filter((row) => row.severity === "error").length,
+      importBatchId: importInput.importBatchId,
       results,
+      rowCount: rows.length,
+      status: results.some((row) => row.severity === "error") ? "failed" : results.some((row) => row.severity === "warning") ? "partial_success" : "success",
       warningCount: results.filter((row) => row.severity === "warning").length,
     };
+    await this.repository.upsertSetting(importSettingKey(importInput.importBatchId), { ...output, failedRows: failedImportRows(rows, results), sourceFormat: importInput.sourceFormat, stage: "validated" });
+    return output;
   }
 
   async confirmImport(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
     this.adminService.assertPermission(admin, "admin.content.write");
-    const validation = await this.validateImport(admin, input);
-    if (!validation.canImport) throw new AppError("validation_failed", "Import validation has blocking errors", validation);
-    const importBatchId = stringValue(input.importBatchId, `import-${Date.now()}`);
+    const importInput = this.importInput(input);
+    const validation = await this.validateImport(admin, { ...input, importBatchId: importInput.importBatchId, rows: importInput.rows });
     let created = 0;
+    let failed = 0;
+    const failures: JsonRecord[] = [];
+    const validationResults = Array.isArray(validation.results) ? validation.results : [];
     let updated = 0;
-    for (const row of arrayRecord(input.rows)) {
-      if (row.sentenceId) {
-        await this.updateSentence(admin, EntityIdCodec.parse(requiredString(row.sentenceId, "sentenceId")), { ...row, importBatchId });
-        updated += 1;
-      } else {
-        await this.createSentence(admin, { ...row, importBatchId });
-        created += 1;
+    for (const [index, row] of importInput.rows.entries()) {
+      const rowValidation = validationResults[index] as JsonRecord | undefined;
+      if (rowValidation?.severity === "error") {
+        failed += 1;
+        failures.push({ errors: rowValidation.errors ?? ["validation failed"], row, rowIndex: index });
+        continue;
+      }
+      try {
+        if (row.sentenceId) {
+          await this.updateSentence(admin, EntityIdCodec.parse(requiredString(row.sentenceId, "sentenceId")), { ...row, importBatchId: importInput.importBatchId });
+          updated += 1;
+        } else {
+          await this.createSentence(admin, { ...row, importBatchId: importInput.importBatchId });
+          created += 1;
+        }
+      } catch (error) {
+        failed += 1;
+        failures.push({ errors: [error instanceof Error ? error.message : "import failed"], row, rowIndex: index });
       }
     }
-    return { created, failed: 0, importBatchId, skipped: 0, updated };
+    const output = {
+      created,
+      failed,
+      failures,
+      importBatchId: importInput.importBatchId,
+      skipped: 0,
+      status: failed === 0 ? "success" : created + updated > 0 ? "partial_success" : "failed",
+      updated,
+    };
+    await this.repository.upsertSetting(importSettingKey(importInput.importBatchId), { ...output, failedRows: failures.map((failure) => failure.row), sourceFormat: importInput.sourceFormat, stage: "confirmed" });
+    return output;
+  }
+
+  async importResult(admin: CurrentAdmin, importBatchId: string): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.content.read");
+    const result = await this.repository.setting(importSettingKey(importBatchId));
+    if (!result) throw new AppError("not_found", "Import result not found");
+    return result;
+  }
+
+  async importFailureCsv(admin: CurrentAdmin, importBatchId: string): Promise<string> {
+    this.adminService.assertPermission(admin, "admin.content.read");
+    const result = await this.importResult(admin, importBatchId);
+    const rows = arrayRecord(result.failedRows);
+    return toCsv(rows);
   }
 
   async defaultAudio(admin: CurrentAdmin): Promise<JsonRecord> {
@@ -289,6 +343,24 @@ export class ContentAdminService {
 
   async validateTarget(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
     this.adminService.assertPermission(admin, "admin.content.read");
+    const targets = arrayRecord(input.targets);
+    if (targets.length > 0) {
+      const results = [];
+      for (const target of targets) {
+        try {
+          const validation = await this.validateTarget(admin, target);
+          const issues = arrayRecord(validation.issues);
+          results.push({ ...target, issues, valid: !issues.some((issue) => issue.severity === "blocking") });
+        } catch (error) {
+          results.push({ ...target, issues: [{ message: error instanceof Error ? error.message : "validation failed", severity: "blocking" }], valid: false });
+        }
+      }
+      return {
+        failed: results.filter((result) => !result.valid).length,
+        results,
+        succeeded: results.filter((result) => result.valid).length,
+      };
+    }
     const objectType = enumValue(input.objectType, ["scene", "course", "sentence"] as const, "course");
     const id = EntityIdCodec.parse(requiredString(input.objectId, "objectId"));
     if (objectType === "scene") return { issues: await this.sceneValidationIssues(await this.requireScene(id)) };
@@ -386,6 +458,18 @@ export class ContentAdminService {
   private async markCourseForRevalidation(courseId: EntityId | null): Promise<void> {
     if (!courseId) return;
     await this.repository.updateCourse(courseId, { needsRevalidation: true });
+  }
+
+  private importInput(input: JsonRecord): { importBatchId: string; rows: JsonRecord[]; sourceFormat: string } {
+    const importBatchId = stringValue(input.importBatchId, `import-${Date.now()}`);
+    if (Array.isArray(input.rows)) return { importBatchId, rows: arrayRecord(input.rows), sourceFormat: "rows" };
+    const rowsText = textValue(input.rows);
+    if (rowsText) return { importBatchId, rows: parseImportRows(rowsText), sourceFormat: importFormat(rowsText) };
+    const dataText = textValue(input.data);
+    if (dataText) return { importBatchId, rows: parseImportRows(dataText), sourceFormat: importFormat(dataText) };
+    const fileText = textValue(input.file);
+    if (fileText) return { importBatchId, rows: parseImportRows(fileText), sourceFormat: importFormat(fileText) };
+    return { importBatchId, rows: [], sourceFormat: "rows" };
   }
 
   private sentenceInput(input: JsonRecord, adminUserId: EntityId): Omit<ContentSentenceRow, "id" | "createdAt" | "updatedAt"> {
@@ -568,4 +652,89 @@ function slugValue(value: unknown, fallback: string): string {
   const source = typeof value === "string" && value.length > 0 ? value : fallback;
   const slug = source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return slug || "content";
+}
+
+function importSettingKey(importBatchId: string): string {
+  return `${importSettingPrefix}${importBatchId}`;
+}
+
+function failedImportRows(rows: JsonRecord[], results: JsonRecord[]): JsonRecord[] {
+  const failedRows: JsonRecord[] = [];
+  for (const [index, result] of results.entries()) {
+    if (result.severity === "error") failedRows.push({ ...(rows[index] ?? {}), errors: result.errors, rowIndex: index });
+  }
+  return failedRows;
+}
+
+function textValue(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Buffer.isBuffer(value)) return value.toString("utf8");
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  if (typeof record.value === "string") return record.value;
+  if (Buffer.isBuffer(record.value)) return record.value.toString("utf8");
+  if (typeof record.data === "string") return record.data;
+  if (Buffer.isBuffer(record.data)) return record.data.toString("utf8");
+  return undefined;
+}
+
+function parseImportRows(text: string): JsonRecord[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (Array.isArray(parsed)) return arrayRecord(parsed);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return arrayRecord((parsed as JsonRecord).rows);
+  }
+  return parseCsvRows(trimmed);
+}
+
+function importFormat(text: string): string {
+  const trimmed = text.trimStart();
+  return trimmed.startsWith("[") || trimmed.startsWith("{") ? "json" : "csv";
+}
+
+function parseCsvRows(text: string): JsonRecord[] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) return [];
+  const [headerLine, ...dataLines] = lines;
+  const headers = splitCsvLine(headerLine ?? "").map((header) => header.trim());
+  return dataLines.map((line) => {
+    const cells = splitCsvLine(line);
+    return Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""]));
+  });
+}
+
+function splitCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      cells.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current);
+  return cells;
+}
+
+function toCsv(rows: JsonRecord[]): string {
+  if (rows.length === 0) return "rowIndex,errors\n";
+  const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+  return `${headers.join(",")}\n${rows.map((row) => headers.map((header) => csvCell(row[header])).join(",")).join("\n")}\n`;
+}
+
+function csvCell(value: unknown): string {
+  const text = typeof value === "string" ? value : value === undefined || value === null ? "" : JSON.stringify(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }

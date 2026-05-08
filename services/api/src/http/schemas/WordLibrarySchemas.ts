@@ -70,6 +70,18 @@ export const wordMetaListQuerySchema = z.object({
   wordId: snowflakeIdSchema.optional(),
 });
 
+export const hearingTrapQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(50).default(10),
+  word: z.string().min(1),
+});
+
+export const generateHearingTrapsBodySchema = z.object({
+  limitPerWord: z.number().int().positive().max(50).default(10),
+  maxWords: z.number().int().positive().max(100000).optional(),
+  offset: z.number().int().nonnegative().default(0),
+  reason: z.string().min(1).optional(),
+});
+
 export const wordParamsSchema = z.object({
   id: snowflakeIdSchema,
 });
@@ -85,7 +97,6 @@ export const wordEntryBodySchema = z.object({
   exclusionReason: z.string().nullable().optional(),
   frequencyCount: z.number().int().nonnegative().nullable().optional(),
   frequencyLow: z.number().int().nonnegative().nullable().optional(),
-  hearingTrap: z.string().nullable().optional(),
   isExcluded: z.boolean().optional(),
   lemma: z.string().min(1).optional(),
   levelTags: z.array(z.string()).optional(),
@@ -198,6 +209,33 @@ export const publicWordMetaResponseSchema = z.object({
   wordMetaId: z.string(),
 });
 
+export const hearingTrapResponseSchema = z.object({
+  algorithmVersion: z.string(),
+  items: z.array(z.object({
+    algorithmVersion: z.string(),
+    phonemes: z.array(z.string()),
+    trapWord: z.string(),
+    trapWordId: z.string(),
+    vectorDistance: z.string(),
+    weightedDistance: z.string(),
+  })),
+  phonemes: z.array(z.string()),
+  sourceWord: z.string(),
+  sourceWordId: z.string(),
+});
+
+export const generateHearingTrapsResponseSchema = z.object({
+  algorithmVersion: z.string(),
+  candidateWords: z.number(),
+  generatedTraps: z.number(),
+  insertedOrUpdated: z.number(),
+  limitPerWord: z.number(),
+  missingWords: z.number(),
+  offset: z.number(),
+  processedWords: z.number(),
+  requestedWords: z.number(),
+});
+
 export const adminWordResponseSchema = z.object({
   audioStatus: z.string(),
   audioUrl: z.string().nullable(),
@@ -210,7 +248,6 @@ export const adminWordResponseSchema = z.object({
   exclusionReason: z.string().nullable(),
   frequencyCount: z.number().nullable(),
   frequencyLow: z.number().nullable(),
-  hearingTrap: z.string().nullable(),
   isExcluded: z.boolean(),
   lemma: z.string(),
   levelTags: z.array(z.string()),

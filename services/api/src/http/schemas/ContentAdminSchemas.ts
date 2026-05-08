@@ -22,6 +22,7 @@ export const contentListQuerySchema = z.object({
 });
 
 export const contentIdParamsSchema = z.object({ id: snowflakeIdSchema });
+export const contentImportParamsSchema = z.object({ importBatchId: z.string().min(1) });
 
 export const contentSceneRequestSchema = z.object({
   description: z.string().nullable().optional(),
@@ -97,8 +98,10 @@ const importRowSchema = contentSentenceRequestSchema.extend({
 
 export const contentImportRequestSchema = z.object({
   importBatchId: z.string().min(1).optional(),
-  rows: z.array(importRowSchema),
-});
+  rows: z.union([z.array(importRowSchema), z.string().min(1)]).optional(),
+  data: z.string().min(1).optional(),
+  file: z.unknown().optional(),
+}).passthrough();
 
 export const defaultAudioRequestSchema = z.object({
   configured: z.boolean(),
@@ -108,8 +111,12 @@ export const defaultAudioRequestSchema = z.object({
 });
 
 export const publishValidationRequestSchema = z.object({
-  objectId: snowflakeIdSchema,
-  objectType: z.enum(["scene", "course", "sentence"]),
+  objectId: snowflakeIdSchema.optional(),
+  objectType: z.enum(["scene", "course", "sentence"]).optional(),
+  targets: z.array(z.object({
+    objectId: snowflakeIdSchema,
+    objectType: z.enum(["scene", "course", "sentence"]),
+  })).optional(),
 });
 
 export const publishRequestSchema = publishValidationRequestSchema.extend({

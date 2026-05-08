@@ -4,7 +4,7 @@ import { snowflakeIdSchema } from "./CommonSchemas.js";
 const jsonScalarSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const jsonArraySchema = z.array(jsonScalarSchema);
 export const jsonValueSchema = z.union([jsonScalarSchema, jsonArraySchema, z.record(z.union([jsonScalarSchema, jsonArraySchema]))]);
-export const jsonObjectSchema = z.record(z.union([jsonScalarSchema, jsonArraySchema, z.record(jsonScalarSchema)]));
+export const jsonObjectSchema = z.record(z.unknown());
 
 export const listQuerySchema = z.object({
   keyword: z.string().min(1).optional(),
@@ -35,6 +35,18 @@ export const annotationListQuerySchema = listQuerySchema.extend({
   targetId: snowflakeIdSchema.optional(),
   targetType: z.enum(["word", "sentence"]).optional(),
   taskType: z.enum(["hearing_trap", "distractors", "target_words", "phrase_chunks", "audio"]).optional(),
+});
+
+export const annotationResultListQuerySchema = listQuerySchema.extend({
+  algorithmVersion: z.string().min(1).optional(),
+  maxConfidence: z.coerce.number().min(0).max(1).optional(),
+  minConfidence: z.coerce.number().min(0).max(1).optional(),
+  resultStatus: z.enum(["auto_approved", "pending_review", "approved", "rejected", "edited"]).optional(),
+  resultType: z.enum(["hearing_trap", "distractors", "target_words", "phrase_chunks"]).optional(),
+  targetId: snowflakeIdSchema.optional(),
+  targetType: z.enum(["word", "sentence"]).optional(),
+  taskId: snowflakeIdSchema.optional(),
+  trapType: z.string().min(1).optional(),
 });
 
 export const userListQuerySchema = z.object({
@@ -203,6 +215,17 @@ export const annotationTaskRequestSchema = z.object({
   taskType: z.enum(["hearing_trap", "distractors", "target_words", "phrase_chunks", "audio"]),
 });
 
+export const annotationTaskRunRequestSchema = z.object({
+  algorithmVersion: z.string().min(1).optional(),
+  limit: z.number().int().positive().max(1000).optional(),
+  offset: z.number().int().nonnegative().optional(),
+  reason: z.string().min(1).optional(),
+  ruleVersion: z.string().min(1).optional(),
+  targetId: snowflakeIdSchema.optional(),
+  targetType: z.enum(["word", "sentence"]),
+  taskType: z.enum(["hearing_trap", "distractors", "target_words", "phrase_chunks"]),
+});
+
 export const annotationTaskReviewRequestSchema = z.object({
   reason: z.string().min(1).optional(),
   rejectionReason: z.string().nullable().optional(),
@@ -210,28 +233,85 @@ export const annotationTaskReviewRequestSchema = z.object({
   reviewStatus: z.enum(["approved", "rejected", "pending_review"]),
 });
 
+export const annotationResultReviewRequestSchema = z.object({
+  manualPatch: jsonObjectSchema.optional(),
+  reason: z.string().min(1).optional(),
+  rejectionReason: z.string().nullable().optional(),
+  resultStatus: z.enum(["auto_approved", "pending_review", "approved", "rejected", "edited"]),
+});
+
+export const annotationResultBulkReviewRequestSchema = annotationResultReviewRequestSchema.extend({
+  annotationResultIds: z.array(snowflakeIdSchema).min(1).max(500),
+});
+
 export const annotationTaskResponseSchema = z.object({
   algorithmVersion: z.string(),
   annotationTaskId: z.string(),
+  completedAt: z.string().nullable().optional(),
   confidence: z.string().nullable(),
   createdAt: z.string(),
+  failedCount: z.number().optional(),
+  failureReason: z.string().nullable().optional(),
+  inputScope: jsonObjectSchema.optional(),
+  lowConfidenceCount: z.number().optional(),
   rejectionReason: z.string().nullable(),
   result: jsonObjectSchema,
   reviewedAt: z.string().nullable(),
   reviewerAdminId: z.string().nullable(),
   reviewStatus: z.string(),
+  ruleVersion: z.string().optional(),
+  startedAt: z.string().nullable().optional(),
+  succeededCount: z.number().optional(),
   targetId: z.string(),
   targetType: z.string(),
+  taskStatus: z.string().optional(),
   taskType: z.string(),
   updatedAt: z.string(),
 });
 export const annotationTaskListResponseSchema = z.object({ items: z.array(annotationTaskResponseSchema) });
+
+export const annotationResultResponseSchema = z.object({
+  algorithmVersion: z.string(),
+  annotationResultId: z.string(),
+  confidence: z.string(),
+  createdAt: z.string(),
+  manualPatch: jsonObjectSchema,
+  payload: jsonObjectSchema,
+  proposedPatch: jsonObjectSchema,
+  rejectionReason: z.string().nullable(),
+  resultStatus: z.string(),
+  resultType: z.string(),
+  reviewedAt: z.string().nullable(),
+  reviewerAdminId: z.string().nullable(),
+  ruleVersion: z.string(),
+  severity: z.string(),
+  targetId: z.string(),
+  targetType: z.string(),
+  taskId: z.string(),
+  trapType: z.string().nullable(),
+  updatedAt: z.string(),
+});
+export const annotationResultListResponseSchema = z.object({ items: z.array(annotationResultResponseSchema) });
+export const annotationBulkReviewResponseSchema = z.object({ applied: z.number(), resultStatus: z.string(), updated: z.number() });
 
 export const selfDescriptionSubmitRequestSchema = z.object({
   answers: z.array(jsonValueSchema).optional(),
   frequencyBoundary: jsonObjectSchema.optional(),
   painPoints: z.array(z.string()).optional(),
   vocabularyEstimate: z.number().int().min(500).max(7500).optional(),
+});
+
+export const assessmentSessionStartRequestSchema = z.object({
+  painPoints: z.array(z.string()).optional(),
+  selfDescription: jsonObjectSchema.optional(),
+  vocabularyEstimate: z.number().int().min(500).max(7500).optional(),
+});
+
+export const assessmentAnswerSubmitRequestSchema = z.object({
+  answers: z.array(z.object({
+    assessmentItemId: snowflakeIdSchema,
+    selectedOption: z.string().min(1).optional(),
+  })).min(1).max(10),
 });
 
 export const assessmentConfigRequestSchema = z.object({
@@ -268,6 +348,46 @@ export const assessmentResultResponseSchema = z.object({
   userId: z.string(),
   verificationRounds: z.array(jsonObjectSchema),
   vocabularyEstimate: z.number(),
+});
+
+const assessmentRoundItemResponseSchema = z.object({
+  answered: z.boolean(),
+  assessmentItemId: z.string(),
+  bandKey: z.string(),
+  difficultyLevel: z.number().nullable(),
+  isCorrect: z.boolean().nullable(),
+  itemIndex: z.number(),
+  lg10wf: z.string().nullable(),
+  options: z.array(z.string()),
+  roundIndex: z.number(),
+  selectedOption: z.string().nullable(),
+  word: z.string(),
+  wordId: z.string(),
+});
+
+export const assessmentSessionResponseSchema = z.object({
+  assessmentResult: jsonObjectSchema.optional(),
+  assessmentSessionId: z.string(),
+  assessmentVersion: z.string(),
+  completedAt: z.string().nullable(),
+  configId: z.string().nullable(),
+  createdAt: z.string(),
+  currentBand: z.string(),
+  currentRound: z.number(),
+  currentRoundItems: z.array(assessmentRoundItemResponseSchema),
+  expiresAt: z.string(),
+  maxRounds: z.number(),
+  minRounds: z.number(),
+  painPoints: z.array(z.string()),
+  progress: jsonObjectSchema,
+  questionsPerRound: z.number(),
+  resultId: z.string().nullable(),
+  resultPayload: jsonObjectSchema,
+  selfDescription: jsonObjectSchema,
+  startedAt: z.string(),
+  status: z.string(),
+  updatedAt: z.string(),
+  userId: z.string(),
 });
 
 export const vocabularyOverviewResponseSchema = z.object({

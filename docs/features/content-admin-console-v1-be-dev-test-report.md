@@ -7,7 +7,9 @@
 ## 单测
 
 - `npm run test:unit -- src/services/ContentAdminService.test.ts`: 通过
-- 实际脚本会执行 `src/**/*.test.ts`，结果 3 个测试文件 / 5 个测试全部通过。
+- `npm run test:unit`: 通过
+- 实际脚本执行 `src/**/*.test.ts`，结果 5 个测试文件 / 16 个测试全部通过。
+- 新增覆盖：批量发布校验对象级结果、导入结果持久化、失败行 CSV、部分成功导入。
 
 ## 构建
 
@@ -15,5 +17,6 @@
 
 ## 集成烟测
 
-- `npm run test:integration`: 未通过
-- 原因：脚本启动时读取 `services/vocabulary/resource/SUBTLEXusfrequencyabove1.xls`，当前工作区该旧路径文件缺失。失败发生在测试资源读取阶段，尚未进入本次新增 `/admin/content/*` API 流程。
+- `npm run test:integration`: 通过
+- 修复：SUBTLEXus fixture 路径支持当前 `services/vocabulary/subtlexus/SUBTLEXusfrequencyabove1.xls`。
+- 新增覆盖：`GET /admin/content/summary`、`POST /admin/content/imports/validate`、`GET /admin/content/imports/:importBatchId`。

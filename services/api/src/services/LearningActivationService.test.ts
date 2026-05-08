@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LearningActivationService } from "./LearningActivationService.js";
-import type { CourseRow, LearningActivationRepository, UserVocabularyWithWordRow, WordRow } from "../repositories/LearningActivationRepository.js";
+import type { AnnotationResultRow, AssessmentItemRow, AssessmentSessionRow, CourseRow, LearningActivationRepository, UserVocabularyWithWordRow, WordRow } from "../repositories/LearningActivationRepository.js";
 
 describe("LearningActivationService course unlock", () => {
   it("unlocks the first three published courses by list rank instead of sortOrder value", async () => {
@@ -94,6 +94,107 @@ describe("LearningActivationService continue learning", () => {
   });
 });
 
+describe("LearningActivationService annotation review", () => {
+  it("applies approved bulk annotation patches to their target content", async () => {
+    let sentencePatch: unknown = null;
+    const service = new LearningActivationService(
+      {
+        now() {
+          return new Date("2026-05-05T00:00:00.000Z");
+        },
+        async bulkUpdateAnnotationResults() {
+          return 1;
+        },
+        async findAnnotationResultsByIds() {
+          return [
+            annotationResultRow({
+              proposedPatch: { bonusWords: ["later"], targetWords: ["try"] },
+              resultType: "target_words",
+              targetId: 10n,
+              targetType: "sentence",
+            }),
+          ];
+        },
+        async updateSentence(_id: bigint, patch: unknown) {
+          sentencePatch = patch;
+          return null;
+        },
+      } as unknown as LearningActivationRepository,
+      {
+        assertPermission() {
+          return undefined;
+        },
+        async audit() {
+          return undefined;
+        },
+      } as never,
+    );
+
+    const result = await service.adminBulkReviewAnnotationResults(
+      { adminUserId: 99n } as never,
+      { annotationResultIds: ["1"], resultStatus: "approved" },
+    );
+
+    expect(result).toMatchObject({ applied: 1, resultStatus: "approved", updated: 1 });
+    expect(sentencePatch).toEqual({ bonusWords: ["later"], targetWords: ["try"] });
+  });
+});
+
+describe("LearningActivationService adaptive assessment", () => {
+  it("starts a word-sampling assessment session with six question items", async () => {
+    const session = assessmentSessionRow();
+    const createdItems: AssessmentItemRow[] = [];
+    const service = new LearningActivationService(
+      {
+        now() {
+          return new Date("2026-05-05T00:00:00.000Z");
+        },
+        async activeAssessmentConfig() {
+          return undefined;
+        },
+        async findActiveAssessmentSession() {
+          return undefined;
+        },
+        async createAssessmentSession() {
+          return session;
+        },
+        async assessmentQuestionCandidates() {
+          return Array.from({ length: 6 }, (_, index) => ({ ...wordRow({ id: BigInt(100 + index), meaningCn: `释义${index}`, word: `word${index}` }), assessmentMeaning: `释义${index}` }));
+        },
+        async assessmentDistractors(input: { excludeWordIds: bigint[] }) {
+          return [1, 2, 3].map((offset) => ({
+            ...wordRow({ id: BigInt(200 + offset + input.excludeWordIds.length), meaningCn: `干扰${offset}-${input.excludeWordIds.length}` }),
+            assessmentMeaning: `干扰${offset}-${input.excludeWordIds.length}`,
+          }));
+        },
+        async createAssessmentItems(rows: Array<Omit<AssessmentItemRow, "id" | "createdAt" | "updatedAt">>) {
+          createdItems.push(...rows.map((row, index) => ({
+            ...row,
+            createdAt: new Date("2026-05-05T00:00:00.000Z"),
+            id: BigInt(1000 + index),
+            updatedAt: new Date("2026-05-05T00:00:00.000Z"),
+          })));
+          return rows.length;
+        },
+        async findAssessmentSession() {
+          return session;
+        },
+        async listAssessmentRoundItems() {
+          return createdItems;
+        },
+      } as unknown as LearningActivationRepository,
+      {} as never,
+    );
+
+    const result = await service.startAssessmentSession("user-1", {});
+
+    expect(result.status).toBe("in_progress");
+    expect(result.currentRound).toBe(1);
+    expect((result.currentRoundItems as unknown[]).length).toBe(6);
+    expect(createdItems.every((item) => item.options.length === 4)).toBe(true);
+  });
+});
+
 function courseRow(patch: Partial<CourseRow> = {}): CourseRow {
   return {
     createdAt: new Date("2026-05-05T00:00:00.000Z"),
@@ -111,6 +212,56 @@ function courseRow(patch: Partial<CourseRow> = {}): CourseRow {
     unlockPolicy: { type: "previous_course_completed" },
     updatedAt: new Date("2026-05-05T00:00:00.000Z"),
     updatedByAdminId: null,
+    ...patch,
+  };
+}
+
+function assessmentSessionRow(patch: Partial<AssessmentSessionRow> = {}): AssessmentSessionRow {
+  return {
+    assessmentVersion: "adaptive-word-sampling-v1",
+    completedAt: null,
+    configId: null,
+    createdAt: new Date("2026-05-05T00:00:00.000Z"),
+    currentBand: "L2_MID",
+    currentRound: 1,
+    expiresAt: new Date("2026-05-06T00:00:00.000Z"),
+    id: 500n,
+    maxRounds: 9,
+    minRounds: 5,
+    painPoints: [],
+    questionsPerRound: 6,
+    resultId: null,
+    resultPayload: {},
+    selfDescription: {},
+    startedAt: new Date("2026-05-05T00:00:00.000Z"),
+    status: "in_progress",
+    updatedAt: new Date("2026-05-05T00:00:00.000Z"),
+    userId: "user-1",
+    ...patch,
+  };
+}
+
+function annotationResultRow(patch: Partial<AnnotationResultRow> = {}): AnnotationResultRow {
+  return {
+    algorithmVersion: "auto-annotation-v1",
+    confidence: "0.9000",
+    createdAt: new Date("2026-05-05T00:00:00.000Z"),
+    id: 1n,
+    manualPatch: {},
+    payload: {},
+    proposedPatch: {},
+    rejectionReason: null,
+    resultStatus: "pending_review",
+    resultType: "target_words",
+    reviewedAt: null,
+    reviewerAdminId: null,
+    ruleVersion: "auto-annotation-rules-v1",
+    severity: "0.6000",
+    targetId: 10n,
+    targetType: "sentence",
+    taskId: 100n,
+    trapType: null,
+    updatedAt: new Date("2026-05-05T00:00:00.000Z"),
     ...patch,
   };
 }
@@ -163,7 +314,6 @@ function wordRow(patch: Partial<WordRow> = {}): WordRow {
     exclusionReason: null,
     frequencyCount: 100,
     frequencyLow: null,
-    hearingTrap: null,
     id: 100n,
     isExcluded: false,
     lemma: "word",

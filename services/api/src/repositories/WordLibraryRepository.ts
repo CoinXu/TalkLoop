@@ -1,6 +1,6 @@
 import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import type { AppDatabase } from "../infrastructure/database/Database.js";
-import { wordEntries, wordMeta, wordSenses } from "../infrastructure/database/schema.js";
+import { hearingTrapWords, wordEntries, wordMeta, wordSenses } from "../infrastructure/database/schema.js";
 import type { SnowflakeIdGenerator } from "../infrastructure/SnowflakeIdGenerator.js";
 import type { EntityId } from "../domain/EntityId.js";
 
@@ -11,6 +11,7 @@ export type WordMetaInsert = typeof wordMeta.$inferInsert;
 export type WordSenseRow = typeof wordSenses.$inferSelect;
 export type WordSenseInsert = typeof wordSenses.$inferInsert;
 export type WordEntryWithSensesRow = WordEntryRow & { senses: WordSenseRow[] };
+export type HearingTrapWordInsert = typeof hearingTrapWords.$inferInsert;
 
 export interface WordListQuery {
   keyword?: string | undefined;
@@ -165,6 +166,19 @@ export class WordLibraryRepository {
 
   async findByLemma(lemma: string): Promise<WordEntryRow | undefined> {
     return this.db.query.wordEntries.findFirst({ where: eq(wordEntries.lemma, lemma) });
+  }
+
+  async listHearingTrapCandidateWords(): Promise<Array<{ id: EntityId; word: string }>> {
+    return this.db.select({ id: wordEntries.id, word: wordEntries.word }).from(wordEntries);
+  }
+
+  async listHearingTrapSourceWords(input: { limit: number; offset: number }): Promise<Array<{ id: EntityId; word: string }>> {
+    return this.db
+      .select({ id: wordEntries.id, word: wordEntries.word })
+      .from(wordEntries)
+      .orderBy(wordEntries.id)
+      .limit(input.limit)
+      .offset(input.offset);
   }
 
   async create(input: Omit<WordEntryInsert, "id" | "createdAt" | "updatedAt">): Promise<WordEntryRow> {
@@ -363,6 +377,28 @@ export class WordLibraryRepository {
     }
 
     return inserted;
+  }
+
+  async upsertHearingTrapWords(rows: Array<Omit<HearingTrapWordInsert, "createdAt" | "id" | "updatedAt">>): Promise<number> {
+    if (rows.length === 0) return 0;
+    const now = this.now();
+    const batchSize = 250;
+    for (let offset = 0; offset < rows.length; offset += batchSize) {
+      const batch = rows.slice(offset, offset + batchSize);
+      await this.db
+        .insert(hearingTrapWords)
+        .values(batch.map((row) => ({ ...row, createdAt: now, id: this.nextId(), updatedAt: now })))
+        .onConflictDoUpdate({
+          target: [hearingTrapWords.sourceWordId, hearingTrapWords.algorithmVersion],
+          set: {
+            sourcePhonemes: sql`excluded.source_phonemes`,
+            sourceWord: sql`excluded.source_word`,
+            traps: sql`excluded.traps`,
+            updatedAt: now,
+          },
+        });
+    }
+    return rows.length;
   }
 
   private async withSenses(rows: WordEntryRow[]): Promise<WordEntryWithSensesRow[]> {

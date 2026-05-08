@@ -5,6 +5,7 @@ import type { WordEntryRow, WordEntryWithSensesRow, WordLibraryRepository, WordM
 import type { SubtlexusRepository, SubtlexusWordRow } from "../repositories/SubtlexusRepository.js";
 import { SubtlexImportParser } from "./SubtlexImportParser.js";
 import { randomUUID } from "node:crypto";
+import type { HearingTrapAlgorithm } from "./HearingTrapAlgorithm.js";
 
 export interface WordEntryInput {
   word: string;
@@ -23,7 +24,6 @@ export interface WordEntryInput {
   difficultyLevel?: number | null | undefined;
   levelTags?: string[] | undefined;
   sceneTags?: string[] | undefined;
-  hearingTrap?: string | null | undefined;
   distractors?: { pronunciation: string[]; meaning: string[]; difficulty: string[] } | undefined;
   commonCollocations?: string[] | undefined;
   reviewStatus?: "pending_review" | "approved" | "rejected" | undefined;
@@ -188,6 +188,7 @@ export class WordLibraryService {
     private readonly wordRepository: WordLibraryRepository,
     private readonly subtlexusRepository: SubtlexusRepository,
     private readonly adminService: AdminService,
+    private readonly hearingTrapAlgorithm?: HearingTrapAlgorithm,
   ) {}
 
   async listPublished(limit: number, offset: number, difficultyLevel?: number): Promise<Record<string, unknown>[]> {
@@ -218,6 +219,108 @@ export class WordLibraryService {
     return rows.map((row) => this.toWordMeta(row, sensesByMetaId.get(EntityIdCodec.stringify(row.id)) ?? []));
   }
 
+  async findHearingTrapWords(input: { limit: number; word: string }): Promise<Record<string, unknown>> {
+    if (!this.hearingTrapAlgorithm) throw new AppError("validation_failed", "Hearing trap algorithm is not configured");
+    const algorithm = this.hearingTrapAlgorithm;
+    const sourceWord = await this.wordRepository.findByWord(input.word) ?? await this.wordRepository.findByLemma(input.word.toLowerCase());
+    if (!sourceWord) throw new AppError("not_found", "Word entry not found");
+    const wordRows = await this.wordRepository.listHearingTrapCandidateWords();
+    const idByNormalizedWord = new Map(wordRows.map((row) => [row.word.toLowerCase(), row.id]));
+    const result = await algorithm.findSimilar({ candidateWords: wordRows.map((row) => row.word), limit: input.limit, word: sourceWord.word });
+    const items = result.candidates.flatMap((candidate) => {
+      const trapWordId = idByNormalizedWord.get(candidate.word);
+      if (!trapWordId) return [];
+      return [{
+        algorithmVersion: algorithm.algorithmVersion,
+        phonemes: candidate.phonemes,
+        trapWord: candidate.word,
+        trapWordId: EntityIdCodec.stringify(trapWordId),
+        vectorDistance: candidate.vectorDistance.toFixed(4),
+        weightedDistance: candidate.weightedDistance.toFixed(4),
+      }];
+    });
+    await this.wordRepository.upsertHearingTrapWords([{
+      algorithmVersion: algorithm.algorithmVersion,
+      sourcePhonemes: result.phonemes,
+      sourceWord: result.word,
+      sourceWordId: sourceWord.id,
+      traps: items.map((item) => ({
+        phonemes: item.phonemes,
+        trapWord: item.trapWord,
+        trapWordId: item.trapWordId,
+        vectorDistance: item.vectorDistance,
+        weightedDistance: item.weightedDistance,
+      })),
+    }]);
+    return {
+      algorithmVersion: algorithm.algorithmVersion,
+      items,
+      phonemes: result.phonemes,
+      sourceWord: result.word,
+      sourceWordId: EntityIdCodec.stringify(sourceWord.id),
+    };
+  }
+
+  async adminGenerateHearingTrapWords(
+    admin: CurrentAdmin,
+    input: { limitPerWord: number; maxWords?: number | undefined; offset: number; reason?: string | undefined },
+  ): Promise<Record<string, unknown>> {
+    this.adminService.assertPermission(admin, "admin.word_library.write");
+    if (!this.hearingTrapAlgorithm) throw new AppError("validation_failed", "Hearing trap algorithm is not configured");
+    const algorithm = this.hearingTrapAlgorithm;
+    const wordRows = await this.wordRepository.listHearingTrapCandidateWords();
+    const sourceRows = await this.wordRepository.listHearingTrapSourceWords({
+      limit: input.maxWords ?? wordRows.length,
+      offset: input.offset,
+    });
+    const idByNormalizedWord = new Map(wordRows.map((row) => [row.word.toLowerCase(), row.id]));
+    const generated = await algorithm.findSimilarMany({
+      candidateWords: wordRows.map((row) => row.word),
+      limit: input.limitPerWord,
+      words: sourceRows.map((row) => row.word),
+    });
+    let insertedOrUpdated = 0;
+    let generatedTraps = 0;
+    const rowsToUpsert: Parameters<WordLibraryRepository["upsertHearingTrapWords"]>[0] = [];
+    for (const result of generated.results) {
+      const sourceWordId = idByNormalizedWord.get(result.word);
+      if (!sourceWordId) continue;
+      const traps = result.candidates.flatMap((candidate) => {
+        const trapWordId = idByNormalizedWord.get(candidate.word);
+        if (!trapWordId) return [];
+        return [{
+          phonemes: candidate.phonemes,
+          trapWord: candidate.word,
+          trapWordId: EntityIdCodec.stringify(trapWordId),
+          vectorDistance: candidate.vectorDistance.toFixed(4),
+          weightedDistance: candidate.weightedDistance.toFixed(4),
+        }];
+      });
+      rowsToUpsert.push({
+        algorithmVersion: algorithm.algorithmVersion,
+        sourcePhonemes: result.phonemes,
+        sourceWord: result.word,
+        sourceWordId,
+        traps,
+      });
+      generatedTraps += traps.length;
+    }
+    insertedOrUpdated = await this.wordRepository.upsertHearingTrapWords(rowsToUpsert);
+    const summary = {
+      algorithmVersion: algorithm.algorithmVersion,
+      candidateWords: wordRows.length,
+      generatedTraps,
+      insertedOrUpdated,
+      limitPerWord: input.limitPerWord,
+      missingWords: generated.missingWords.length,
+      offset: input.offset,
+      processedWords: generated.results.length,
+      requestedWords: sourceRows.length,
+    };
+    await this.adminService.audit(admin, "admin.word_library.write", "hearing_traps_generate", "hearing_trap_words", null, undefined, summary, input.reason);
+    return summary;
+  }
+
   async adminCreate(admin: CurrentAdmin, input: WordEntryInput): Promise<Record<string, unknown>> {
     this.adminService.assertPermission(admin, "admin.word_library.write");
     const existing = await this.wordRepository.findByWord(input.word);
@@ -236,7 +339,6 @@ export class WordLibraryService {
       exclusionReason: input.exclusionReason ?? null,
       frequencyCount: input.frequencyCount ?? null,
       frequencyLow: input.frequencyLow ?? null,
-      hearingTrap: input.hearingTrap ?? null,
       isExcluded: input.isExcluded ?? false,
       lemma: input.lemma ?? input.word.toLowerCase(),
       levelTags: input.levelTags ?? [],
@@ -396,7 +498,6 @@ export class WordLibraryService {
       exclusionReason: row.exclusionReason,
       frequencyCount: row.frequencyCount,
       frequencyLow: row.frequencyLow,
-      hearingTrap: row.hearingTrap,
       isExcluded: row.isExcluded,
       lemma: row.lemma,
       levelTags: row.levelTags,
@@ -585,7 +686,6 @@ export class WordLibraryService {
     assign("exclusionReason", input.exclusionReason);
     assign("frequencyCount", input.frequencyCount);
     assign("frequencyLow", input.frequencyLow);
-    assign("hearingTrap", input.hearingTrap);
     assign("isExcluded", input.isExcluded);
     assign("lemma", input.lemma);
     assign("levelTags", input.levelTags);
@@ -638,7 +738,6 @@ export class WordLibraryService {
         exclusionReason: null,
         frequencyCount: null,
         frequencyLow: null,
-        hearingTrap: null,
         isExcluded: false,
         lemma: derived.lemma,
         levelTags: [],

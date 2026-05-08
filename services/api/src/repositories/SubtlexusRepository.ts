@@ -219,7 +219,6 @@ export class SubtlexusRepository {
           exclusionReason: null,
           frequencyCount: row.freqCount,
           frequencyLow: row.freqLow,
-          hearingTrap: null,
           id: this.nextId(),
           isExcluded: false,
           lemma: row.normalizedWord,

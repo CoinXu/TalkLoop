@@ -65,7 +65,10 @@ try {
       throw new Error(`admin word library failed: ${adminWords.statusCode} ${adminWords.body}`);
     }
 
-    const subtlexPath = path.resolve(process.cwd(), "../vocabulary/resource/SUBTLEXusfrequencyabove1.xls");
+    const subtlexPath = await existingPath([
+      path.resolve(process.cwd(), "../vocabulary/resource/SUBTLEXusfrequencyabove1.xls"),
+      path.resolve(process.cwd(), "../vocabulary/subtlexus/SUBTLEXusfrequencyabove1.xls"),
+    ]);
     const subtlexBuffer = await fs.readFile(subtlexPath);
     const boundary = "----learning-activation-smoke";
     const multipartPayload = Buffer.concat([
@@ -148,6 +151,37 @@ try {
     if (adminReports.statusCode !== 200) {
       throw new Error(`admin course reports failed: ${adminReports.statusCode} ${adminReports.body}`);
     }
+
+    const contentSummary = await app.inject({
+      method: "GET",
+      url: "/admin/content/summary",
+      headers: { "x-admin-session-id": session.adminSessionId },
+    });
+    if (contentSummary.statusCode !== 200) {
+      throw new Error(`admin content summary failed: ${contentSummary.statusCode} ${contentSummary.body}`);
+    }
+
+    const contentImportValidation = await app.inject({
+      method: "POST",
+      url: "/admin/content/imports/validate",
+      headers: { "x-admin-session-id": session.adminSessionId },
+      payload: {
+        data: "sentenceText,targetWords\n,meeting\nSmoke content sentence,meeting",
+        importBatchId: "smoke-content-import",
+      },
+    });
+    if (contentImportValidation.statusCode !== 200) {
+      throw new Error(`admin content import validation failed: ${contentImportValidation.statusCode} ${contentImportValidation.body}`);
+    }
+
+    const contentImportResult = await app.inject({
+      method: "GET",
+      url: "/admin/content/imports/smoke-content-import",
+      headers: { "x-admin-session-id": session.adminSessionId },
+    });
+    if (contentImportResult.statusCode !== 200) {
+      throw new Error(`admin content import result failed: ${contentImportResult.statusCode} ${contentImportResult.body}`);
+    }
   }
 
   const publicWords = await app.inject({ method: "GET", url: "/word-library/words" });
@@ -169,4 +203,18 @@ try {
 } finally {
   await app.close();
   await database.close();
+}
+
+async function existingPath(candidates: string[]): Promise<string> {
+  const fallback = candidates[0];
+  if (!fallback) throw new Error("No resource path candidates provided");
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Try the next known local resource path.
+    }
+  }
+  return fallback;
 }

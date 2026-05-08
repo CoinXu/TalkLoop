@@ -1,7 +1,11 @@
 import { AppError } from "../domain/AppError.js";
 import { EntityIdCodec, type EntityId } from "../domain/EntityId.js";
 import type {
+  AnnotationResultRow,
   AnnotationTaskRow,
+  AssessmentItemRow,
+  AssessmentSessionRow,
+  AssessmentWordRow,
   CourseReportRow,
   CourseRow,
   DailyTaskRow,
@@ -11,6 +15,7 @@ import type {
   SentenceRow,
   UserVocabularyEntryRow,
   UserVocabularyWithWordRow,
+  WordRow,
 } from "../repositories/LearningActivationRepository.js";
 import type { AdminService, CurrentAdmin } from "./AdminService.js";
 
@@ -22,6 +27,22 @@ interface ContinueLearningCandidate {
   practiceType: "audio_meaning" | "review";
   prioritySource: ContinueLearningPrioritySource;
   row: UserVocabularyWithWordRow;
+}
+
+interface AssessmentBand {
+  key: string;
+  difficultyLevel: number;
+  estimate: number;
+  maxLg10wf: number;
+  minLg10wf: number;
+}
+
+interface AssessmentRoundSummary extends JsonRecord {
+  bandKey: string;
+  correctCount: number;
+  questionCount: number;
+  recognitionRate: number;
+  roundIndex: number;
 }
 
 export class LearningActivationService {
@@ -222,6 +243,123 @@ export class LearningActivationService {
     return this.annotationTask(result.after);
   }
 
+  async adminRunAnnotationTask(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.annotation.write");
+    const targetType = enumValue(input.targetType, ["word", "sentence"], "word");
+    const taskType = enumValue(input.taskType, ["hearing_trap", "distractors", "target_words", "phrase_chunks"], "hearing_trap");
+    const targetId = input.targetId ? EntityIdCodec.parse(requiredString(input.targetId, "targetId")) : 0n;
+    const limit = Math.min(numberValue(input.limit, input.targetId ? 1 : 200), 1000);
+    const offset = numberValue(input.offset, 0);
+    const algorithmVersion = stringValue(input.algorithmVersion, "auto-annotation-v1");
+    const ruleVersion = stringValue(input.ruleVersion, "auto-annotation-rules-v1");
+    const task = await this.repository.createAnnotationTask({
+      algorithmVersion,
+      confidence: null,
+      inputScope: { limit, offset, targetId: input.targetId ?? null, targetType },
+      rejectionReason: null,
+      result: {},
+      reviewedAt: null,
+      reviewerAdminId: null,
+      reviewStatus: "pending_review",
+      ruleVersion,
+      startedAt: this.repository.now(),
+      targetId,
+      targetType,
+      taskStatus: "running",
+      taskType,
+    } as Parameters<LearningActivationRepository["createAnnotationTask"]>[0]);
+    try {
+      const rows = targetType === "word"
+        ? await this.generateWordAnnotationResults(task.id, taskType, { algorithmVersion, limit, offset, ruleVersion, targetId: input.targetId ? targetId : undefined })
+        : await this.generateSentenceAnnotationResults(task.id, taskType, { algorithmVersion, limit, offset, ruleVersion, targetId: input.targetId ? targetId : undefined });
+      await this.repository.createAnnotationResults(rows);
+      const lowConfidenceCount = rows.filter((row) => Number(row.confidence) < 0.8).length;
+      const result = await this.repository.updateAnnotationTask(task.id, {
+        completedAt: this.repository.now(),
+        failedCount: 0,
+        failureReason: null,
+        lowConfidenceCount,
+        result: { generatedResults: rows.length, lowConfidenceCount },
+        succeededCount: rows.length,
+        taskStatus: "completed",
+      } as Parameters<LearningActivationRepository["updateAnnotationTask"]>[1]);
+      await this.audit(admin, "admin.annotation.write", "annotation_task_run", "annotation_task", task.id, undefined, this.annotationTask(result?.after ?? task), stringOrUndefined(input.reason));
+      return this.annotationTask(result?.after ?? task);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "annotation_failed";
+      const result = await this.repository.updateAnnotationTask(task.id, {
+        completedAt: this.repository.now(),
+        failedCount: 1,
+        failureReason: message,
+        taskStatus: "failed",
+      } as Parameters<LearningActivationRepository["updateAnnotationTask"]>[1]);
+      await this.audit(admin, "admin.annotation.write", "annotation_task_run_failed", "annotation_task", task.id, undefined, { failureReason: message }, stringOrUndefined(input.reason));
+      return this.annotationTask(result?.after ?? task);
+    }
+  }
+
+  async adminRerunAnnotationTask(admin: CurrentAdmin, id: EntityId, input: JsonRecord): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.annotation.write");
+    const existing = await this.repository.findAnnotationTask(id);
+    if (!existing) throw new AppError("not_found", "Annotation task not found");
+    return this.adminRunAnnotationTask(admin, {
+      algorithmVersion: input.algorithmVersion ?? existing.algorithmVersion,
+      limit: numberValue(existing.inputScope.limit, 200),
+      offset: numberValue(existing.inputScope.offset, 0),
+      reason: input.reason,
+      ruleVersion: input.ruleVersion ?? existing.ruleVersion,
+      targetId: existing.targetId === 0n ? undefined : EntityIdCodec.stringify(existing.targetId),
+      targetType: existing.targetType,
+      taskType: existing.taskType,
+    });
+  }
+
+  async adminListAnnotationResults(admin: CurrentAdmin, query: Parameters<LearningActivationRepository["listAnnotationResults"]>[0]): Promise<JsonRecord[]> {
+    this.adminService.assertPermission(admin, "admin.annotation.write");
+    return (await this.repository.listAnnotationResults(query)).map((row) => this.annotationResult(row));
+  }
+
+  async adminReviewAnnotationResult(admin: CurrentAdmin, id: EntityId, input: JsonRecord): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.annotation.write");
+    const status = enumValue(input.resultStatus, ["auto_approved", "pending_review", "approved", "rejected", "edited"], "pending_review");
+    const patch = {
+      manualPatch: optionalRecord(input.manualPatch) ?? {},
+      rejectionReason: nullableString(input.rejectionReason),
+      resultStatus: status,
+      reviewedAt: this.repository.now(),
+      reviewerAdminId: admin.adminUserId,
+    } as Parameters<LearningActivationRepository["updateAnnotationResult"]>[1];
+    const result = await this.repository.updateAnnotationResult(id, patch);
+    if (!result?.after) throw new AppError("not_found", "Annotation result not found");
+    if (status === "approved" || status === "edited" || status === "auto_approved") {
+      await this.applyAnnotationResult(result.after);
+    }
+    await this.audit(admin, "admin.annotation.write", "annotation_result_review", "annotation_result", id, this.annotationResult(result.before), this.annotationResult(result.after), stringOrUndefined(input.reason));
+    return this.annotationResult(result.after);
+  }
+
+  async adminBulkReviewAnnotationResults(admin: CurrentAdmin, input: JsonRecord): Promise<JsonRecord> {
+    this.adminService.assertPermission(admin, "admin.annotation.write");
+    const ids = stringArray(input.annotationResultIds).map((id) => EntityIdCodec.parse(id));
+    const status = enumValue(input.resultStatus, ["auto_approved", "pending_review", "approved", "rejected", "edited"], "pending_review");
+    const updated = await this.repository.bulkUpdateAnnotationResults(ids, {
+      rejectionReason: nullableString(input.rejectionReason),
+      resultStatus: status,
+      reviewedAt: this.repository.now(),
+      reviewerAdminId: admin.adminUserId,
+    } as Parameters<LearningActivationRepository["bulkUpdateAnnotationResults"]>[1]);
+    let applied = 0;
+    if (status === "approved" || status === "edited" || status === "auto_approved") {
+      const rows = await this.repository.findAnnotationResultsByIds(ids);
+      for (const row of rows) {
+        await this.applyAnnotationResult({ ...row, resultStatus: status });
+        applied += 1;
+      }
+    }
+    await this.audit(admin, "admin.annotation.write", "annotation_result_bulk_review", "annotation_result", null, undefined, { applied, resultStatus: status, updated }, stringOrUndefined(input.reason));
+    return { applied, resultStatus: status, updated };
+  }
+
   async activeAssessment(): Promise<JsonRecord> {
     const row = await this.repository.activeAssessmentConfig();
     return row ? serialize(row, "assessmentConfigId") : { assessmentConfigId: null, estimateMatrix: {}, selfDescriptionQuestions: [], samplingStrategy: {} };
@@ -242,6 +380,91 @@ export class LearningActivationService {
     });
     const generatedVocabularyCount = await this.generateInitialVocabulary(userId, estimate, "self_description");
     return { ...serialize(row, "assessmentResultId"), generatedVocabularyCount };
+  }
+
+  async startAssessmentSession(userId: string, input: JsonRecord): Promise<JsonRecord> {
+    const active = await this.repository.findActiveAssessmentSession(userId);
+    if (active) return this.assessmentSession(active, await this.repository.listAssessmentRoundItems(active.id, active.currentRound));
+    const config = await this.repository.activeAssessmentConfig();
+    const sampling = recordValue(config?.samplingStrategy, {});
+    const now = this.repository.now();
+    const assessmentVersion = config?.version ?? stringValue(sampling.assessmentVersion, "adaptive-word-sampling-v1");
+    const questionsPerRound = Math.min(Math.max(numberValue(sampling.questionsPerRound, 6), 4), 10);
+    const minRounds = Math.min(Math.max(numberValue(sampling.minRounds, 5), 5), 9);
+    const maxRounds = Math.min(Math.max(numberValue(sampling.maxRounds, 9), minRounds), 9);
+    const startBand = this.startAssessmentBand(input);
+    const session = await this.repository.createAssessmentSession({
+      assessmentVersion,
+      completedAt: null,
+      configId: config?.id ?? null,
+      currentBand: startBand.key,
+      currentRound: 1,
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      maxRounds,
+      minRounds,
+      painPoints: stringArray(input.painPoints),
+      questionsPerRound,
+      resultId: null,
+      resultPayload: {},
+      selfDescription: recordValue(input.selfDescription, {}),
+      startedAt: now,
+      status: "in_progress",
+      userId,
+    });
+    const generated = await this.generateAssessmentRound(session, startBand, 1, []);
+    if (generated < questionsPerRound) {
+      await this.repository.updateAssessmentSession(session.id, { status: "expired", resultPayload: { failureReason: "insufficient_assessment_questions" } });
+      throw new AppError("validation_failed", "Insufficient published word entries for assessment");
+    }
+    const created = await this.repository.findAssessmentSession(session.id) ?? session;
+    return this.assessmentSession(created, await this.repository.listAssessmentRoundItems(created.id, created.currentRound));
+  }
+
+  async getAssessmentSession(userId: string, id: EntityId): Promise<JsonRecord> {
+    const session = await this.repository.findAssessmentSession(id);
+    if (!session || session.userId !== userId) throw new AppError("not_found", "Assessment session not found");
+    return this.assessmentSession(session, await this.repository.listAssessmentRoundItems(session.id, session.currentRound));
+  }
+
+  async submitAssessmentAnswers(userId: string, id: EntityId, input: JsonRecord): Promise<JsonRecord> {
+    const session = await this.repository.findAssessmentSession(id);
+    if (!session || session.userId !== userId) throw new AppError("not_found", "Assessment session not found");
+    if (session.status !== "in_progress") return this.assessmentSession(session, await this.repository.listAssessmentRoundItems(session.id, session.currentRound));
+    if (session.expiresAt.getTime() <= this.repository.now().getTime()) {
+      const result = await this.repository.updateAssessmentSession(session.id, { status: "expired" });
+      return this.assessmentSession(result?.after ?? session, await this.repository.listAssessmentRoundItems(session.id, session.currentRound));
+    }
+
+    const roundItems = await this.repository.listAssessmentRoundItems(session.id, session.currentRound);
+    const byId = new Map(roundItems.map((item) => [EntityIdCodec.stringify(item.id), item]));
+    for (const answer of arrayRecord(input.answers)) {
+      const itemId = requiredString(answer.assessmentItemId, "assessmentItemId");
+      const item = byId.get(itemId);
+      if (!item || item.answeredAt) continue;
+      const selectedOption = stringValue(answer.selectedOption, "__unknown__");
+      await this.repository.updateAssessmentItem(item.id, {
+        answeredAt: this.repository.now(),
+        isCorrect: selectedOption === item.correctMeaning,
+        selectedOption,
+      });
+    }
+
+    const refreshedRoundItems = await this.repository.listAssessmentRoundItems(session.id, session.currentRound);
+    if (refreshedRoundItems.some((item) => !item.answeredAt)) {
+      const current = await this.repository.findAssessmentSession(session.id) ?? session;
+      return this.assessmentSession(current, refreshedRoundItems);
+    }
+
+    const allItems = await this.repository.listAssessmentItems(session.id);
+    const shouldComplete = this.shouldCompleteAssessment(session, allItems);
+    if (shouldComplete) return this.completeAssessmentSession(session, allItems);
+
+    const nextBand = this.nextAssessmentBand(session.currentBand, this.roundRecognitionRate(refreshedRoundItems));
+    const nextRound = session.currentRound + 1;
+    await this.repository.updateAssessmentSession(session.id, { currentBand: nextBand.key, currentRound: nextRound });
+    await this.generateAssessmentRound(session, nextBand, nextRound, allItems.map((item) => item.wordId));
+    const updated = await this.repository.findAssessmentSession(session.id) ?? { ...session, currentBand: nextBand.key, currentRound: nextRound };
+    return this.assessmentSession(updated, await this.repository.listAssessmentRoundItems(session.id, nextRound));
   }
 
   async adminListAssessmentConfigs(admin: CurrentAdmin, query: Parameters<LearningActivationRepository["listAssessmentConfigs"]>[0]): Promise<JsonRecord[]> {
@@ -502,6 +725,363 @@ export class LearningActivationService {
     return (await this.repository.listCourseReports(query)).map((row) => this.courseReport(row));
   }
 
+  private async generateWordAnnotationResults(
+    taskId: EntityId,
+    taskType: string,
+    input: { algorithmVersion: string; limit: number; offset: number; ruleVersion: string; targetId?: EntityId | undefined },
+  ): Promise<Parameters<LearningActivationRepository["createAnnotationResults"]>[0]> {
+    const rows = await this.repository.annotationWordCandidates({ limit: input.limit, offset: input.offset, targetId: input.targetId });
+    return rows.flatMap((word) => {
+      if (taskType === "hearing_trap") return this.wordHearingTrapResult(taskId, word, input);
+      if (taskType === "distractors") return this.wordDistractorResult(taskId, word, input);
+      return [];
+    });
+  }
+
+  private async generateSentenceAnnotationResults(
+    taskId: EntityId,
+    taskType: string,
+    input: { algorithmVersion: string; limit: number; offset: number; ruleVersion: string; targetId?: EntityId | undefined },
+  ): Promise<Parameters<LearningActivationRepository["createAnnotationResults"]>[0]> {
+    const rows = await this.repository.annotationSentenceCandidates({ limit: input.limit, offset: input.offset, targetId: input.targetId });
+    return rows.flatMap((sentence) => {
+      if (taskType === "target_words") return this.sentenceTargetWordsResult(taskId, sentence, input);
+      if (taskType === "phrase_chunks") return this.sentencePhraseChunksResult(taskId, sentence, input);
+      if (taskType === "hearing_trap") return this.sentenceHearingTrapResults(taskId, sentence, input);
+      return [];
+    });
+  }
+
+  private wordHearingTrapResult(
+    taskId: EntityId,
+    word: WordRow & { hearingTraps: Record<string, unknown>[] },
+    input: { algorithmVersion: string; ruleVersion: string },
+  ): Parameters<LearningActivationRepository["createAnnotationResults"]>[0] {
+    if (word.hearingTraps.length === 0) return [];
+    const confidence = word.hearingTraps.length >= 3 ? 0.86 : 0.72;
+    const severity = Math.min(0.95, 0.45 + word.hearingTraps.length * 0.08 + (word.difficultyLevel ?? 1) * 0.04);
+    return [{
+      algorithmVersion: input.algorithmVersion,
+      confidence: fixed(confidence),
+      payload: {
+        explanation: `${word.word} has near-sound confusable words based on phoneme similarity.`,
+        phonetic: word.phonetic,
+        trapType: "near_sound_confusion",
+        traps: word.hearingTraps,
+        word: word.word,
+      },
+      proposedPatch: {},
+      resultStatus: confidence >= 0.8 ? "auto_approved" : "pending_review",
+      resultType: "hearing_trap",
+      ruleVersion: input.ruleVersion,
+      severity: fixed(severity),
+      targetId: word.id,
+      targetType: "word",
+      taskId,
+      trapType: "near_sound_confusion",
+    }];
+  }
+
+  private wordDistractorResult(
+    taskId: EntityId,
+    word: WordRow & { hearingTraps: Record<string, unknown>[] },
+    input: { algorithmVersion: string; ruleVersion: string },
+  ): Parameters<LearningActivationRepository["createAnnotationResults"]>[0] {
+    const phonetic = word.hearingTraps.map((trap: Record<string, unknown>) => String(trap.trapWord ?? "")).filter(Boolean).slice(0, 8);
+    const distractors = {
+      difficulty: [],
+      meaning: [],
+      pronunciation: phonetic,
+    };
+    const confidence = phonetic.length >= 3 ? 0.82 : 0.58;
+    return [{
+      algorithmVersion: input.algorithmVersion,
+      confidence: fixed(confidence),
+      payload: { distractors, word: word.word },
+      proposedPatch: { distractors },
+      resultStatus: confidence >= 0.8 ? "auto_approved" : "pending_review",
+      resultType: "distractors",
+      ruleVersion: input.ruleVersion,
+      severity: fixed(0.5),
+      targetId: word.id,
+      targetType: "word",
+      taskId,
+      trapType: null,
+    }];
+  }
+
+  private sentenceTargetWordsResult(
+    taskId: EntityId,
+    sentence: SentenceRow,
+    input: { algorithmVersion: string; ruleVersion: string },
+  ): Parameters<LearningActivationRepository["createAnnotationResults"]>[0] {
+    const tokens = sentenceTokens(sentence.sentenceText);
+    const candidates = uniqueStrings([...sentence.targetWords, ...tokens.filter((token) => token.length > 3)]).slice(0, 8);
+    if (candidates.length === 0) return [];
+    const targetWords = candidates.slice(0, 3);
+    const bonusWords = candidates.slice(3);
+    return [{
+      algorithmVersion: input.algorithmVersion,
+      confidence: fixed(sentence.targetWords.length > 0 ? 0.84 : 0.62),
+      payload: { bonusWords, sentenceText: sentence.sentenceText, targetWords },
+      proposedPatch: { bonusWords, targetWords },
+      resultStatus: sentence.targetWords.length > 0 ? "auto_approved" : "pending_review",
+      resultType: "target_words",
+      ruleVersion: input.ruleVersion,
+      severity: fixed(0.6),
+      targetId: sentence.id,
+      targetType: "sentence",
+      taskId,
+      trapType: null,
+    }];
+  }
+
+  private sentencePhraseChunksResult(
+    taskId: EntityId,
+    sentence: SentenceRow,
+    input: { algorithmVersion: string; ruleVersion: string },
+  ): Parameters<LearningActivationRepository["createAnnotationResults"]>[0] {
+    const chunks = phraseChunks(sentence.sentenceText);
+    if (chunks.length <= 1) return [];
+    return [{
+      algorithmVersion: input.algorithmVersion,
+      confidence: fixed(0.66),
+      payload: { chunks, sentenceText: sentence.sentenceText },
+      proposedPatch: { phraseChunks: chunks },
+      resultStatus: "pending_review",
+      resultType: "phrase_chunks",
+      ruleVersion: input.ruleVersion,
+      severity: fixed(0.42),
+      targetId: sentence.id,
+      targetType: "sentence",
+      taskId,
+      trapType: null,
+    }];
+  }
+
+  private sentenceHearingTrapResults(
+    taskId: EntityId,
+    sentence: SentenceRow,
+    input: { algorithmVersion: string; ruleVersion: string },
+  ): Parameters<LearningActivationRepository["createAnnotationResults"]>[0] {
+    const text = sentence.sentenceText;
+    const tokens = sentenceTokens(text);
+    const results: Parameters<LearningActivationRepository["createAnnotationResults"]>[0] = [];
+    const weakForms = tokens.filter((token) => weakFormWords.has(token.toLowerCase()));
+    if (weakForms.length > 0) {
+      results.push(this.sentenceTrapResult(taskId, sentence, input, "weak_form", { words: uniqueStrings(weakForms), explanation: "Common function words may reduce in unstressed sentence positions." }, 0.62, 0.58));
+    }
+    const contractions = tokens.filter((token) => token.includes("'") || contractionWords.has(token.toLowerCase()));
+    if (contractions.length > 0) {
+      results.push(this.sentenceTrapResult(taskId, sentence, input, "contraction", { forms: uniqueStrings(contractions), explanation: "Contractions or colloquial reductions may hide the full word group." }, 0.78, 0.66));
+    }
+    if (hasLinkingBoundary(tokens)) {
+      results.push(this.sentenceTrapResult(taskId, sentence, input, "linking", { explanation: "Adjacent word boundary may link in connected speech.", tokens }, 0.56, 0.52));
+    }
+    return results;
+  }
+
+  private sentenceTrapResult(
+    taskId: EntityId,
+    sentence: SentenceRow,
+    input: { algorithmVersion: string; ruleVersion: string },
+    trapType: string,
+    payload: JsonRecord,
+    confidence: number,
+    severity: number,
+  ): Parameters<LearningActivationRepository["createAnnotationResults"]>[0][number] {
+    return {
+      algorithmVersion: input.algorithmVersion,
+      confidence: fixed(confidence),
+      payload: { ...payload, sentenceId: EntityIdCodec.stringify(sentence.id), sentenceText: sentence.sentenceText, trapType },
+      proposedPatch: {},
+      resultStatus: confidence >= 0.8 ? "auto_approved" : "pending_review",
+      resultType: "hearing_trap",
+      ruleVersion: input.ruleVersion,
+      severity: fixed(severity),
+      targetId: sentence.id,
+      targetType: "sentence",
+      taskId,
+      trapType,
+    };
+  }
+
+  private async applyAnnotationResult(row: AnnotationResultRow): Promise<void> {
+    const patch = { ...row.proposedPatch, ...row.manualPatch };
+    if (row.targetType === "sentence" && (row.resultType === "target_words" || row.resultType === "phrase_chunks")) {
+      const sentencePatch: Parameters<LearningActivationRepository["updateSentence"]>[1] = {};
+      if (Array.isArray(patch.targetWords)) sentencePatch.targetWords = patch.targetWords.filter((item): item is string => typeof item === "string");
+      if (Array.isArray(patch.bonusWords)) sentencePatch.bonusWords = patch.bonusWords.filter((item): item is string => typeof item === "string");
+      if (Array.isArray(patch.phraseChunks)) sentencePatch.phraseChunks = patch.phraseChunks.filter((item): item is string => typeof item === "string");
+      if (Object.keys(sentencePatch).length > 0) await this.repository.updateSentence(row.targetId, sentencePatch);
+    }
+    if (row.targetType === "word" && row.resultType === "distractors" && isRecord(patch.distractors)) {
+      await this.repository.updateAnnotationWord(row.targetId, { distractors: {
+        difficulty: stringArray(patch.distractors.difficulty),
+        meaning: stringArray(patch.distractors.meaning),
+        pronunciation: stringArray(patch.distractors.pronunciation),
+      } });
+    }
+  }
+
+  private startAssessmentBand(input: JsonRecord): AssessmentBand {
+    const estimate = numberValue(input.vocabularyEstimate, 2500);
+    if (estimate >= 5500) return assessmentBands[5] ?? assessmentBands[3]!;
+    if (estimate >= 3500) return assessmentBands[4] ?? assessmentBands[3]!;
+    if (estimate <= 1200) return assessmentBands[1] ?? assessmentBands[3]!;
+    return this.assessmentBand("L2_MID");
+  }
+
+  private assessmentBand(key: string): AssessmentBand {
+    return assessmentBands.find((band) => band.key === key) ?? assessmentBands[3]!;
+  }
+
+  private nextAssessmentBand(currentKey: string, recognitionRate: number): AssessmentBand {
+    const currentIndex = Math.max(0, assessmentBands.findIndex((band) => band.key === currentKey));
+    if (recognitionRate >= 0.8) return assessmentBands[Math.min(currentIndex + 1, assessmentBands.length - 1)]!;
+    if (recognitionRate <= 0.4) return assessmentBands[Math.max(currentIndex - 1, 0)]!;
+    return assessmentBands[currentIndex]!;
+  }
+
+  private async generateAssessmentRound(session: AssessmentSessionRow, band: AssessmentBand, roundIndex: number, excludeWordIds: EntityId[]): Promise<number> {
+    const candidates = await this.assessmentCandidatesWithFallback(band, session.questionsPerRound, excludeWordIds);
+    const rows: Parameters<LearningActivationRepository["createAssessmentItems"]>[0] = [];
+    const usedWordIds = [...excludeWordIds];
+    for (const word of candidates.slice(0, session.questionsPerRound)) {
+      const correctMeaning = word.assessmentMeaning?.trim();
+      if (!correctMeaning) continue;
+      const distractors = await this.repository.assessmentDistractors({ difficultyLevel: word.difficultyLevel ?? band.difficultyLevel, excludeWordIds: [...usedWordIds, word.id], limit: 12 });
+      const options = this.assessmentOptions(correctMeaning, distractors);
+      if (options.length < 4) continue;
+      rows.push({
+        bandKey: band.key,
+        correctMeaning,
+        difficultyLevel: word.difficultyLevel ?? band.difficultyLevel,
+        isCorrect: null,
+        itemIndex: rows.length + 1,
+        lg10wf: word.lg10wf,
+        options,
+        roundIndex,
+        selectedOption: null,
+        sessionId: session.id,
+        word: word.word,
+        wordId: word.id,
+      });
+      usedWordIds.push(word.id);
+    }
+    await this.repository.createAssessmentItems(rows);
+    return rows.length;
+  }
+
+  private async assessmentCandidatesWithFallback(band: AssessmentBand, limit: number, excludeWordIds: EntityId[]): Promise<AssessmentWordRow[]> {
+    const candidates: AssessmentWordRow[] = [];
+    const seen = new Set(excludeWordIds.map((id) => EntityIdCodec.stringify(id)));
+    const bandIndex = assessmentBands.findIndex((item) => item.key === band.key);
+    const bandOrder = uniqueNumbers([bandIndex, bandIndex - 1, bandIndex + 1, bandIndex - 2, bandIndex + 2]).filter((index) => index >= 0 && index < assessmentBands.length);
+    for (const index of bandOrder) {
+      const current = assessmentBands[index]!;
+      const rows = await this.repository.assessmentQuestionCandidates({ ...current, excludeWordIds: [...excludeWordIds, ...candidates.map((item) => item.id)], limit: limit - candidates.length });
+      for (const row of rows) {
+        const key = EntityIdCodec.stringify(row.id);
+        if (seen.has(key)) continue;
+        candidates.push(row);
+        seen.add(key);
+        if (candidates.length >= limit) return candidates;
+      }
+    }
+    return candidates;
+  }
+
+  private assessmentOptions(correctMeaning: string, distractors: AssessmentWordRow[]): string[] {
+    const options = uniqueNonEmptyStrings([correctMeaning, ...distractors.map((word) => word.assessmentMeaning ?? "")]).slice(0, 4);
+    if (options.length < 4) return options;
+    return rotate(options, correctMeaning.length % options.length);
+  }
+
+  private shouldCompleteAssessment(session: AssessmentSessionRow, items: AssessmentItemRow[]): boolean {
+    if (session.currentRound >= session.maxRounds) return true;
+    if (session.currentRound < session.minRounds) return false;
+    const rounds = this.assessmentRoundSummaries(items);
+    const lastTwo = rounds.slice(-2);
+    return lastTwo.length === 2 && lastTwo.every((round) => round.bandKey === lastTwo[0]?.bandKey) && Math.abs(lastTwo[0]!.recognitionRate - lastTwo[1]!.recognitionRate) <= 0.2;
+  }
+
+  private async completeAssessmentSession(session: AssessmentSessionRow, items: AssessmentItemRow[]): Promise<JsonRecord> {
+    const summaries = this.assessmentRoundSummaries(items);
+    const frontier = this.frontierBand(summaries);
+    const confidenceLevel = this.assessmentConfidence(session, items, summaries);
+    const conservative = confidenceLevel === "low" ? assessmentBands[Math.max(0, assessmentBands.findIndex((band) => band.key === frontier.key) - 1)]! : frontier;
+    const vocabularyEstimate = conservative.estimate;
+    const recognizedBands = summaries.filter((round) => round.recognitionRate >= 0.6).map((round) => round.bandKey);
+    const frequencyBoundary = { frontierBand: conservative.key, maxLg10wf: conservative.maxLg10wf, minLg10wf: conservative.minLg10wf };
+    const resultPayload = {
+      assessmentVersion: session.assessmentVersion,
+      confidenceLevel,
+      frontierBand: conservative.key,
+      initialUnlockedLevels: uniqueNumbers(assessmentBands.filter((band) => band.difficultyLevel <= conservative.difficultyLevel).map((band) => band.difficultyLevel)),
+      recognizedBands: uniqueNonEmptyStrings(recognizedBands),
+      rounds: summaries,
+    };
+    const result = await this.repository.createAssessmentResult({
+      configId: session.configId,
+      frequencyBoundary,
+      painPoints: session.painPoints,
+      source: "adaptive_word_sampling",
+      status: "completed",
+      userId: session.userId,
+      verificationRounds: summaries,
+      vocabularyEstimate,
+    });
+    const generatedVocabularyCount = await this.generateInitialVocabularyByBoundary(session.userId, vocabularyEstimate, conservative, "adaptive_word_sampling");
+    const updated = await this.repository.updateAssessmentSession(session.id, {
+      completedAt: this.repository.now(),
+      resultId: result.id,
+      resultPayload: { ...resultPayload, assessmentResultId: EntityIdCodec.stringify(result.id), generatedVocabularyCount },
+      status: "completed",
+    });
+    return {
+      ...this.assessmentSession(updated?.after ?? { ...session, resultId: result.id, resultPayload, status: "completed" }, []),
+      assessmentResult: { ...serialize(result, "assessmentResultId"), generatedVocabularyCount, ...resultPayload },
+    };
+  }
+
+  private assessmentRoundSummaries(items: AssessmentItemRow[]): AssessmentRoundSummary[] {
+    const byRound = new Map<number, AssessmentItemRow[]>();
+    for (const item of items) byRound.set(item.roundIndex, [...(byRound.get(item.roundIndex) ?? []), item]);
+    return [...byRound.entries()].sort(([left], [right]) => left - right).map(([roundIndex, roundItems]) => {
+      const correctCount = roundItems.filter((item) => item.isCorrect).length;
+      const recognitionRate = roundItems.length === 0 ? 0 : correctCount / roundItems.length;
+      return {
+        bandKey: roundItems[0]?.bandKey ?? "UNKNOWN",
+        correctCount,
+        questionCount: roundItems.length,
+        recognitionRate,
+        roundIndex,
+      };
+    });
+  }
+
+  private roundRecognitionRate(items: AssessmentItemRow[]): number {
+    if (items.length === 0) return 0;
+    return items.filter((item) => item.isCorrect).length / items.length;
+  }
+
+  private frontierBand(rounds: AssessmentRoundSummary[]): AssessmentBand {
+    const recognized = rounds.filter((round) => numberValue(round.recognitionRate, 0) >= 0.6);
+    const key = stringValue(recognized.at(-1)?.bandKey, rounds.at(-1)?.bandKey ? String(rounds.at(-1)?.bandKey) : "L1_MID");
+    return this.assessmentBand(key);
+  }
+
+  private assessmentConfidence(session: AssessmentSessionRow, items: AssessmentItemRow[], rounds: AssessmentRoundSummary[]): string {
+    if (items.length < session.minRounds * session.questionsPerRound) return "low";
+    if (rounds.length >= session.minRounds && rounds.some((round) => numberValue(round.questionCount, 0) < session.questionsPerRound)) return "low";
+    const rates = rounds.map((round) => numberValue(round.recognitionRate, 0));
+    const impossiblePattern = rates.some((rate, index) => index > 0 && rate - (rates[index - 1] ?? 0) > 0.5);
+    if (impossiblePattern) return "low";
+    if (session.currentRound >= session.maxRounds) return "medium";
+    return "high";
+  }
+
   private async courseWithUnlock(row: CourseRow, rank: number): Promise<JsonRecord> {
     const sentenceCount = await this.repository.courseSentenceCount(row.id);
     const unlocked = rank < 3;
@@ -546,6 +1126,10 @@ export class LearningActivationService {
 
   private annotationTask(row: AnnotationTaskRow): JsonRecord {
     return serialize(row, "annotationTaskId");
+  }
+
+  private annotationResult(row: AnnotationResultRow): JsonRecord {
+    return serialize(row, "annotationResultId");
   }
 
   private userVocabulary(row: UserVocabularyEntryRow | UserVocabularyWithWordRow): JsonRecord {
@@ -635,6 +1219,34 @@ export class LearningActivationService {
     return serialize(row, "courseReportId");
   }
 
+  private assessmentSession(row: AssessmentSessionRow, currentRoundItems: AssessmentItemRow[]): JsonRecord {
+    return {
+      ...serialize(row, "assessmentSessionId"),
+      currentRoundItems: currentRoundItems.map((item) => ({
+        assessmentItemId: EntityIdCodec.stringify(item.id),
+        answered: Boolean(item.answeredAt),
+        bandKey: item.bandKey,
+        difficultyLevel: item.difficultyLevel,
+        isCorrect: item.answeredAt ? item.isCorrect : null,
+        itemIndex: item.itemIndex,
+        lg10wf: item.lg10wf,
+        options: [...item.options, "不认识/不确定"],
+        roundIndex: item.roundIndex,
+        selectedOption: item.selectedOption,
+        word: item.word,
+        wordId: EntityIdCodec.stringify(item.wordId),
+      })),
+      progress: {
+        answeredInCurrentRound: currentRoundItems.filter((item) => item.answeredAt).length,
+        maxQuestions: row.maxRounds * row.questionsPerRound,
+        maxRounds: row.maxRounds,
+        minQuestions: row.minRounds * row.questionsPerRound,
+        minRounds: row.minRounds,
+        questionsPerRound: row.questionsPerRound,
+      },
+    };
+  }
+
   private estimateVocabulary(answers: unknown): number {
     if (!Array.isArray(answers)) return 2500;
     return Math.max(500, Math.min(7500, 1000 + answers.length * 1000));
@@ -666,6 +1278,47 @@ export class LearningActivationService {
         adminUserId: null,
         eventType: "initial_generation",
         metadata: { assessmentEstimate: estimate },
+        newStatus: row.activationStatus,
+        oldStatus: null,
+        reason: source,
+        userId,
+        userVocabularyEntryId: row.id,
+      });
+      count += 1;
+    }
+    return count;
+  }
+
+  private async generateInitialVocabularyByBoundary(userId: string, estimate: number, band: AssessmentBand, source: string): Promise<number> {
+    const words = await this.repository.publishedWordsForInitialVocabularyBoundary({
+      limit: Math.min(estimate, 500),
+      maxDifficultyLevel: band.difficultyLevel,
+      minLg10wf: Math.max(0, band.minLg10wf - 0.2),
+    });
+    let count = 0;
+    for (const word of words) {
+      const row = await this.repository.createUserVocabularyEntry({
+        activationStatus: "red",
+        avoidUntil: null,
+        consecutiveCorrect: 0,
+        failureCount: 0,
+        lastPracticeType: null,
+        nextReviewAt: this.repository.now(),
+        sentenceExposures: 0,
+        skipCount: 0,
+        source,
+        spokenCount: 0,
+        srsIntervalDays: 0,
+        totalAttempts: 0,
+        totalCorrect: 0,
+        userId,
+        weakPronunciations: [],
+        wordId: word.id,
+      });
+      await this.repository.createUserVocabularyEvent({
+        adminUserId: null,
+        eventType: "initial_generation",
+        metadata: { assessmentEstimate: estimate, frontierBand: band.key },
         newStatus: row.activationStatus,
         oldStatus: null,
         reason: source,
@@ -769,9 +1422,93 @@ export class LearningActivationService {
     return 30;
   }
 
-  private async audit(admin: CurrentAdmin, permissionKey: string, action: string, objectType: string, objectId: EntityId, oldValue?: JsonRecord, newValue?: JsonRecord, reason?: string): Promise<void> {
-    await this.adminService.audit(admin, permissionKey, action, objectType, EntityIdCodec.stringify(objectId), oldValue, newValue, reason);
+  private async audit(admin: CurrentAdmin, permissionKey: string, action: string, objectType: string, objectId: EntityId | null, oldValue?: JsonRecord, newValue?: JsonRecord, reason?: string): Promise<void> {
+    await this.adminService.audit(admin, permissionKey, action, objectType, objectId === null ? null : EntityIdCodec.stringify(objectId), oldValue, newValue, reason);
   }
+}
+
+const weakFormWords = new Set(["a", "an", "the", "of", "to", "for", "and", "or", "but", "can", "would", "was", "were", "have", "has", "had", "do", "does", "did"]);
+const contractionWords = new Set(["gonna", "wanna", "gotta", "dunno", "lemme", "kinda", "sorta"]);
+const assessmentBands: AssessmentBand[] = [
+  { difficultyLevel: 1, estimate: 800, key: "L1_HIGH", maxLg10wf: 8, minLg10wf: 5.2 },
+  { difficultyLevel: 1, estimate: 1200, key: "L1_MID", maxLg10wf: 5.2, minLg10wf: 4.7 },
+  { difficultyLevel: 2, estimate: 1800, key: "L2_HIGH", maxLg10wf: 4.7, minLg10wf: 4.3 },
+  { difficultyLevel: 2, estimate: 2500, key: "L2_MID", maxLg10wf: 4.3, minLg10wf: 3.9 },
+  { difficultyLevel: 3, estimate: 3500, key: "L3_HIGH", maxLg10wf: 3.9, minLg10wf: 3.5 },
+  { difficultyLevel: 3, estimate: 5000, key: "L3_MID", maxLg10wf: 3.5, minLg10wf: 3.1 },
+  { difficultyLevel: 4, estimate: 6500, key: "L4_HIGH", maxLg10wf: 3.1, minLg10wf: 2.7 },
+  { difficultyLevel: 4, estimate: 7500, key: "L4_MID", maxLg10wf: 2.7, minLg10wf: 0 },
+];
+
+function fixed(value: number): string {
+  return value.toFixed(4);
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function sentenceTokens(sentence: string): string[] {
+  return sentence.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.map((token) => token.toLowerCase()) ?? [];
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim().toLowerCase()).filter(Boolean))];
+}
+
+function uniqueNonEmptyStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    output.push(trimmed);
+  }
+  return output;
+}
+
+function uniqueNumbers(values: number[]): number[] {
+  return [...new Set(values.filter((value) => Number.isFinite(value)))];
+}
+
+function rotate<T>(values: T[], count: number): T[] {
+  if (values.length === 0) return values;
+  const normalized = count % values.length;
+  return [...values.slice(normalized), ...values.slice(0, normalized)];
+}
+
+function phraseChunks(sentence: string): string[] {
+  const tokens = sentenceTokens(sentence);
+  if (tokens.length <= 12) return [sentence];
+  const punctuation = sentence.split(/[,;:—-]\s*/).map((chunk) => chunk.trim()).filter(Boolean);
+  if (punctuation.length > 1) return punctuation;
+  const markerPattern = /\b(that|which|who|where|when|if|because|although|since|while|but)\b/i;
+  const words = sentence.split(/\s+/);
+  const chunks: string[] = [];
+  let current: string[] = [];
+  for (const word of words) {
+    if (current.length >= 6 && markerPattern.test(word)) {
+      chunks.push(current.join(" "));
+      current = [word];
+    } else {
+      current.push(word);
+    }
+  }
+  if (current.length > 0) chunks.push(current.join(" "));
+  if (chunks.length > 1) return chunks;
+  const midpoint = Math.ceil(words.length / 2);
+  return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")].filter(Boolean);
+}
+
+function hasLinkingBoundary(tokens: string[]): boolean {
+  for (let index = 0; index < tokens.length - 1; index += 1) {
+    const current = tokens[index] ?? "";
+    const next = tokens[index + 1] ?? "";
+    if (/[bcdfghjklmnpqrstvwxyz]$/.test(current) && /^[aeiou]/.test(next)) return true;
+    if (/[tdkgpb]$/.test(current) && /^[bcdfghjklmnpqrstvwxyz]/.test(next)) return true;
+  }
+  return false;
 }
 
 function serialize(row: Record<string, unknown>, idName: string): JsonRecord {

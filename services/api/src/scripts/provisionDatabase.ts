@@ -58,6 +58,12 @@ async function runMigration(): Promise<void> {
     await applyMigrationIfMissing(client, "word_senses", "0008_word_senses_dictionaryapi.sql");
     await applyMigrationFileOnce(client, "0009_drop_word_entry_summary_meaning_fields.sql");
     await applyMigrationFileOnce(client, "0010_remove_dictionaryapi_summary_derived_fields.sql");
+    await applyMigrationIfMissing(client, "hearing_trap_words", "0011_hearing_trap_words.sql");
+    await applyMigrationFileOnce(client, "0012_drop_word_entries_hearing_trap.sql");
+    await applyMigrationFileOnce(client, "0013_compact_hearing_trap_words.sql");
+    await applyMigrationFileOnce(client, "0014_drop_hearing_trap_pair_backup.sql");
+    await applyMigrationFileOnce(client, "0015_auto_annotation_results.sql");
+    await applyMigrationFileOnce(client, "0016_adaptive_level_assessment.sql");
     await seedBootstrapAdminIfRequested(client);
   } finally {
     await client.end();

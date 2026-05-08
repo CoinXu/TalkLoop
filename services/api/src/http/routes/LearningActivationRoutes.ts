@@ -8,14 +8,24 @@ import {
   activationAttemptRequestSchema,
   activationAttemptResponseSchema,
   annotationListQuerySchema,
+  annotationBulkReviewResponseSchema,
+  annotationResultBulkReviewRequestSchema,
+  annotationResultListQuerySchema,
+  annotationResultListResponseSchema,
+  annotationResultResponseSchema,
+  annotationResultReviewRequestSchema,
   annotationTaskListResponseSchema,
   annotationTaskRequestSchema,
   annotationTaskResponseSchema,
   annotationTaskReviewRequestSchema,
+  annotationTaskRunRequestSchema,
   assessmentConfigListResponseSchema,
   assessmentConfigRequestSchema,
   assessmentConfigResponseSchema,
+  assessmentAnswerSubmitRequestSchema,
   assessmentResultResponseSchema,
+  assessmentSessionResponseSchema,
+  assessmentSessionStartRequestSchema,
   courseListResponseSchema,
   courseListQuerySchema,
   courseReportListQuerySchema,
@@ -120,6 +130,18 @@ export class LearningActivationRoutes {
       reply.status(201).send(await this.service.submitSelfDescription(this.currentUserId(request), selfDescriptionSubmitRequestSchema.parse(request.body))),
     );
 
+    app.post("/learning/assessment/sessions", { schema: RouteDocs.schema(this, "submitAssessment", { body: assessmentSessionStartRequestSchema, response: { 201: assessmentSessionResponseSchema } }) }, async (request, reply) =>
+      reply.status(201).send(await this.service.startAssessmentSession(this.currentUserId(request), assessmentSessionStartRequestSchema.parse(request.body))),
+    );
+
+    app.get("/learning/assessment/sessions/:id", { schema: RouteDocs.schema(this, "submitAssessment", { params: idParamsSchema, response: { 200: assessmentSessionResponseSchema } }) }, async (request) =>
+      this.service.getAssessmentSession(this.currentUserId(request), this.paramId(request)),
+    );
+
+    app.post("/learning/assessment/sessions/:id/answers", { schema: RouteDocs.schema(this, "submitAssessment", { params: idParamsSchema, body: assessmentAnswerSubmitRequestSchema, response: { 200: assessmentSessionResponseSchema } }) }, async (request) =>
+      this.service.submitAssessmentAnswers(this.currentUserId(request), this.paramId(request), assessmentAnswerSubmitRequestSchema.parse(request.body)),
+    );
+
     app.get("/learning/vocabulary", { schema: RouteDocs.schema(this, "vocabularyOverview", { response: { 200: vocabularyOverviewResponseSchema } }) }, async (request) => this.service.vocabularyOverview(this.currentUserId(request)));
 
     app.get("/learning/vocabulary/words", { schema: RouteDocs.schema(this, "vocabularyOverview", { query: userListQuerySchema, response: { 200: userVocabularyListResponseSchema } }) }, async (request) => {
@@ -205,8 +227,23 @@ export class LearningActivationRoutes {
     app.post("/admin/annotations/tasks", { schema: RouteDocs.schema(this, "adminResource", { body: annotationTaskRequestSchema, response: { 201: annotationTaskResponseSchema } }) }, async (request, reply) =>
       reply.status(201).send(await this.service.adminCreateAnnotationTask(await this.currentAdmin(request), annotationTaskRequestSchema.parse(request.body))),
     );
+    app.post("/admin/annotations/tasks/run", { schema: RouteDocs.schema(this, "adminResource", { body: annotationTaskRunRequestSchema, response: { 201: annotationTaskResponseSchema } }) }, async (request, reply) =>
+      reply.status(201).send(await this.service.adminRunAnnotationTask(await this.currentAdmin(request), annotationTaskRunRequestSchema.parse(request.body))),
+    );
+    app.post("/admin/annotations/tasks/:id/rerun", { schema: RouteDocs.schema(this, "adminResource", { params: idParamsSchema, body: annotationTaskRunRequestSchema.partial(), response: { 201: annotationTaskResponseSchema } }) }, async (request, reply) =>
+      reply.status(201).send(await this.service.adminRerunAnnotationTask(await this.currentAdmin(request), this.paramId(request), annotationTaskRunRequestSchema.partial().parse(request.body))),
+    );
     app.post("/admin/annotations/tasks/:id/review", { schema: RouteDocs.schema(this, "adminResource", { params: idParamsSchema, body: annotationTaskReviewRequestSchema, response: { 200: annotationTaskResponseSchema } }) }, async (request) =>
       this.service.adminReviewAnnotationTask(await this.currentAdmin(request), this.paramId(request), annotationTaskReviewRequestSchema.parse(request.body)),
+    );
+    app.get("/admin/annotations/results", { schema: RouteDocs.schema(this, "adminResource", { query: annotationResultListQuerySchema, response: { 200: annotationResultListResponseSchema } }) }, async (request) => ({
+      items: await this.service.adminListAnnotationResults(await this.currentAdmin(request), this.annotationResultQuery(annotationResultListQuerySchema.parse(request.query))),
+    }));
+    app.post("/admin/annotations/results/bulk-review", { schema: RouteDocs.schema(this, "adminResource", { body: annotationResultBulkReviewRequestSchema, response: { 200: annotationBulkReviewResponseSchema } }) }, async (request) =>
+      this.service.adminBulkReviewAnnotationResults(await this.currentAdmin(request), annotationResultBulkReviewRequestSchema.parse(request.body)),
+    );
+    app.post("/admin/annotations/results/:id/review", { schema: RouteDocs.schema(this, "adminResource", { params: idParamsSchema, body: annotationResultReviewRequestSchema, response: { 200: annotationResultResponseSchema } }) }, async (request) =>
+      this.service.adminReviewAnnotationResult(await this.currentAdmin(request), this.paramId(request), annotationResultReviewRequestSchema.parse(request.body)),
     );
 
     app.get("/admin/assessment/configs", { schema: RouteDocs.schema(this, "adminResource", { query: versionedConfigListQuerySchema, response: { 200: assessmentConfigListResponseSchema } }) }, async (request) => ({
@@ -290,6 +327,14 @@ export class LearningActivationRoutes {
     const { targetId, ...rest } = query;
     const output: Parameters<LearningActivationService["adminListAnnotationTasks"]>[1] = { ...rest };
     if (targetId) output.targetId = EntityIdCodec.parse(targetId);
+    return output;
+  }
+
+  private annotationResultQuery(query: ReturnType<typeof annotationResultListQuerySchema.parse>): Parameters<LearningActivationService["adminListAnnotationResults"]>[1] {
+    const { targetId, taskId, ...rest } = query;
+    const output: Parameters<LearningActivationService["adminListAnnotationResults"]>[1] = { ...rest };
+    if (targetId) output.targetId = EntityIdCodec.parse(targetId);
+    if (taskId) output.taskId = EntityIdCodec.parse(taskId);
     return output;
   }
 

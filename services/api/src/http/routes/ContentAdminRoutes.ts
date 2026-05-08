@@ -9,6 +9,7 @@ import {
   contentBatchStatusRequestSchema,
   contentCompositionRequestSchema,
   contentIdParamsSchema,
+  contentImportParamsSchema,
   contentImportRequestSchema,
   contentListQuerySchema,
   contentListResponseSchema,
@@ -51,6 +52,9 @@ export class ContentAdminRoutes {
     app.get("/admin/content/scenes", { schema: RouteDocs.schema(this, "resource", { query: contentListQuerySchema, response: { 200: contentListResponseSchema } }) }, async (request) => ({
       items: await this.service.listScenes(await this.currentAdmin(request), this.contentQuery(contentListQuerySchema.parse(request.query))),
     }));
+    app.get("/admin/content/scenes/:id", { schema: RouteDocs.schema(this, "resource", { params: contentIdParamsSchema, response: { 200: contentAnyResponseSchema } }) }, async (request) =>
+      this.service.getScene(await this.currentAdmin(request), this.paramId(request)),
+    );
     app.post("/admin/content/scenes", { schema: RouteDocs.schema(this, "resource", { body: createContentSceneRequestSchema, response: { 201: contentAnyResponseSchema } }) }, async (request, reply) =>
       reply.status(201).send(await this.service.createScene(await this.currentAdmin(request), createContentSceneRequestSchema.parse(request.body))),
     );
@@ -63,6 +67,9 @@ export class ContentAdminRoutes {
       const { level, ...rest } = query;
       return { items: await this.service.listCourses(await this.currentAdmin(request), { ...this.contentQuery(rest), level }) };
     });
+    app.get("/admin/content/courses/:id", { schema: RouteDocs.schema(this, "resource", { params: contentIdParamsSchema, response: { 200: contentAnyResponseSchema } }) }, async (request) =>
+      this.service.getCourse(await this.currentAdmin(request), this.paramId(request)),
+    );
     app.post("/admin/content/courses", { schema: RouteDocs.schema(this, "resource", { body: createContentCourseRequestSchema, response: { 201: contentAnyResponseSchema } }) }, async (request, reply) =>
       reply.status(201).send(await this.service.createCourse(await this.currentAdmin(request), createContentCourseRequestSchema.parse(request.body))),
     );
@@ -95,6 +102,13 @@ export class ContentAdminRoutes {
     app.post("/admin/content/imports/confirm", { schema: RouteDocs.schema(this, "importValidation", { body: contentImportRequestSchema, response: { 200: contentAnyResponseSchema } }) }, async (request) =>
       this.service.confirmImport(await this.currentAdmin(request), contentImportRequestSchema.parse(request.body)),
     );
+    app.get("/admin/content/imports/:importBatchId", { schema: RouteDocs.schema(this, "importValidation", { params: contentImportParamsSchema, response: { 200: contentAnyResponseSchema } }) }, async (request) =>
+      this.service.importResult(await this.currentAdmin(request), contentImportParamsSchema.parse(request.params).importBatchId),
+    );
+    app.get("/admin/content/imports/:importBatchId/failures", { schema: RouteDocs.schema(this, "importValidation", { params: contentImportParamsSchema }) }, async (request, reply) => {
+      const csv = await this.service.importFailureCsv(await this.currentAdmin(request), contentImportParamsSchema.parse(request.params).importBatchId);
+      return reply.header("content-type", "text/csv; charset=utf-8").send(csv);
+    });
 
     app.get("/admin/content/audio/default", { schema: RouteDocs.schema(this, "defaultAudio", { response: { 200: contentAnyResponseSchema } }) }, async (request) => this.service.defaultAudio(await this.currentAdmin(request)));
     app.put("/admin/content/audio/default", { schema: RouteDocs.schema(this, "defaultAudio", { body: defaultAudioRequestSchema, response: { 200: contentAnyResponseSchema } }) }, async (request) =>

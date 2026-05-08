@@ -9,6 +9,10 @@ import {
   createWordsFromSubtlexusBodySchema,
   createWordsFromSubtlexusResponseSchema,
   applyWordMetaBodySchema,
+  generateHearingTrapsBodySchema,
+  generateHearingTrapsResponseSchema,
+  hearingTrapQuerySchema,
+  hearingTrapResponseSchema,
   publicWordListQuerySchema,
   publicWordMetaListResponseSchema,
   importDictionaryApiBodySchema,
@@ -40,6 +44,12 @@ export class WordLibraryRoutes {
 
   @Operation("List public word metadata")
   listWordMeta(): void {}
+
+  @Operation("Find hearing trap words")
+  findHearingTraps(): void {}
+
+  @Operation("Admin generate hearing trap words")
+  adminGenerateHearingTraps(): void {}
 
   @Operation("Admin list word entries")
   adminList(): void {}
@@ -96,6 +106,15 @@ export class WordLibraryRoutes {
     );
 
     app.get(
+      "/word-library/hearing-traps",
+      { schema: RouteDocs.schema(this, "findHearingTraps", { query: hearingTrapQuerySchema, response: { 200: hearingTrapResponseSchema } }) },
+      async (request) => {
+        const query = hearingTrapQuerySchema.parse(request.query);
+        return this.wordLibraryService.findHearingTrapWords(query);
+      },
+    );
+
+    app.get(
       "/admin/word-library/words",
       { schema: RouteDocs.schema(this, "adminList", { query: wordListQuerySchema, response: { 200: adminWordListResponseSchema } }) },
       async (request) => {
@@ -127,6 +146,16 @@ export class WordLibraryRoutes {
             wordId: query.wordId ? EntityIdCodec.parse(query.wordId) : undefined,
           }),
         };
+      },
+    );
+
+    app.post(
+      "/admin/word-library/hearing-traps/generate",
+      { schema: RouteDocs.schema(this, "adminGenerateHearingTraps", { body: generateHearingTrapsBodySchema, response: { 200: generateHearingTrapsResponseSchema } }) },
+      async (request) => {
+        const admin = await this.currentAdmin(request);
+        const body = generateHearingTrapsBodySchema.parse(request.body);
+        return this.wordLibraryService.adminGenerateHearingTrapWords(admin, body);
       },
     );
 

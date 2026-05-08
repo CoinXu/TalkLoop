@@ -115,7 +115,6 @@ export const wordEntries = pgTable(
     difficultyLevel: integer("difficulty_level"),
     levelTags: jsonb("level_tags").$type<string[]>().notNull().default([]),
     sceneTags: jsonb("scene_tags").$type<string[]>().notNull().default([]),
-    hearingTrap: text("hearing_trap"),
     distractors: jsonb("distractors").$type<{ pronunciation: string[]; meaning: string[]; difficulty: string[] }>().notNull().default({ pronunciation: [], meaning: [], difficulty: [] }),
     commonCollocations: jsonb("common_collocations").$type<string[]>().notNull().default([]),
     reviewStatus: text("review_status").notNull().default("pending_review"),
@@ -176,6 +175,28 @@ export const wordSenses = pgTable(
     metaDefinitionIdx: uniqueIndex("word_senses_meta_definition_idx").on(table.wordMetaId, table.senseIndex, table.definitionIndex),
     metaIdx: index("word_senses_word_meta_id_idx").on(table.wordMetaId),
     wordIdx: index("word_senses_word_id_idx").on(table.wordId, table.partOfSpeech, table.senseIndex, table.definitionIndex),
+  }),
+);
+
+export const hearingTrapWords = pgTable(
+  "hearing_trap_words",
+  {
+    ...baseColumns(),
+    algorithmVersion: text("algorithm_version").notNull(),
+    sourcePhonemes: jsonb("source_phonemes").$type<string[]>().notNull().default([]),
+    sourceWord: text("source_word").notNull(),
+    sourceWordId: pgBigint("source_word_id", { mode: "bigint" }).notNull().references(() => wordEntries.id),
+    traps: jsonb("traps").$type<Array<{
+      phonemes: string[];
+      trapWord: string;
+      trapWordId: string;
+      vectorDistance: string;
+      weightedDistance: string;
+    }>>().notNull().default([]),
+  },
+  (table) => ({
+    sourceIdx: index("hearing_trap_words_source_compact_idx").on(table.sourceWordId),
+    sourceVersionIdx: uniqueIndex("hearing_trap_words_source_version_idx").on(table.sourceWordId, table.algorithmVersion),
   }),
 );
 
@@ -292,20 +313,58 @@ export const annotationTasks = pgTable(
   "annotation_tasks",
   {
     ...baseColumns(),
+    completedAt: timestamp("completed_at"),
+    failedCount: integer("failed_count").notNull().default(0),
+    failureReason: text("failure_reason"),
+    inputScope: jsonb("input_scope").$type<Record<string, unknown>>().notNull().default({}),
+    lowConfidenceCount: integer("low_confidence_count").notNull().default(0),
     targetType: text("target_type").notNull(),
     targetId: pgBigint("target_id", { mode: "bigint" }).notNull(),
     taskType: text("task_type").notNull(),
     algorithmVersion: text("algorithm_version").notNull(),
+    ruleVersion: text("rule_version").notNull().default("auto-annotation-v1"),
     result: jsonb("result").$type<Record<string, unknown>>().notNull().default({}),
     confidence: numeric("confidence"),
     reviewStatus: text("review_status").notNull().default("pending_review"),
     reviewerAdminId: pgBigint("reviewer_admin_id", { mode: "bigint" }).references(() => adminUsers.id),
     reviewedAt: timestamp("reviewed_at"),
     rejectionReason: text("rejection_reason"),
+    startedAt: timestamp("started_at"),
+    succeededCount: integer("succeeded_count").notNull().default(0),
+    taskStatus: text("task_status").notNull().default("queued"),
   },
   (table) => ({
     targetIdx: index("annotation_tasks_target_idx").on(table.targetType, table.targetId),
     reviewIdx: index("annotation_tasks_review_idx").on(table.reviewStatus, table.taskType),
+    statusIdx: index("annotation_tasks_status_idx").on(table.taskStatus, table.taskType),
+  }),
+);
+
+export const annotationResults = pgTable(
+  "annotation_results",
+  {
+    ...baseColumns(),
+    algorithmVersion: text("algorithm_version").notNull(),
+    confidence: numeric("confidence").notNull(),
+    manualPatch: jsonb("manual_patch").$type<Record<string, unknown>>().notNull().default({}),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}),
+    proposedPatch: jsonb("proposed_patch").$type<Record<string, unknown>>().notNull().default({}),
+    rejectionReason: text("rejection_reason"),
+    resultStatus: text("result_status").notNull().default("pending_review"),
+    resultType: text("result_type").notNull(),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewerAdminId: pgBigint("reviewer_admin_id", { mode: "bigint" }).references(() => adminUsers.id),
+    ruleVersion: text("rule_version").notNull(),
+    severity: numeric("severity").notNull(),
+    targetId: pgBigint("target_id", { mode: "bigint" }).notNull(),
+    targetType: text("target_type").notNull(),
+    taskId: pgBigint("task_id", { mode: "bigint" }).notNull().references(() => annotationTasks.id),
+    trapType: text("trap_type"),
+  },
+  (table) => ({
+    reviewIdx: index("annotation_results_review_idx").on(table.resultStatus, table.resultType, table.confidence),
+    targetIdx: index("annotation_results_target_idx").on(table.targetType, table.targetId, table.resultType),
+    taskIdx: index("annotation_results_task_idx").on(table.taskId),
   }),
 );
 
@@ -340,6 +399,58 @@ export const userAssessmentResults = pgTable(
   },
   (table) => ({
     userIdx: index("user_assessment_results_user_idx").on(table.userId, table.createdAt),
+  }),
+);
+
+export const assessmentSessions = pgTable(
+  "assessment_sessions",
+  {
+    ...baseColumns(),
+    assessmentVersion: text("assessment_version").notNull(),
+    completedAt: timestamp("completed_at"),
+    configId: pgBigint("config_id", { mode: "bigint" }).references(() => assessmentConfigs.id),
+    currentBand: text("current_band").notNull().default("L2_MID"),
+    currentRound: integer("current_round").notNull().default(1),
+    expiresAt: timestamp("expires_at").notNull(),
+    maxRounds: integer("max_rounds").notNull().default(9),
+    minRounds: integer("min_rounds").notNull().default(5),
+    painPoints: jsonb("pain_points").$type<string[]>().notNull().default([]),
+    questionsPerRound: integer("questions_per_round").notNull().default(6),
+    resultId: pgBigint("result_id", { mode: "bigint" }).references(() => userAssessmentResults.id),
+    resultPayload: jsonb("result_payload").$type<Record<string, unknown>>().notNull().default({}),
+    selfDescription: jsonb("self_description").$type<Record<string, unknown>>().notNull().default({}),
+    startedAt: timestamp("started_at").notNull(),
+    status: text("status").notNull().default("in_progress"),
+    userId: text("user_id").notNull(),
+  },
+  (table) => ({
+    userStatusIdx: index("assessment_sessions_user_status_idx").on(table.userId, table.status, table.updatedAt),
+  }),
+);
+
+export const assessmentItems = pgTable(
+  "assessment_items",
+  {
+    id: pgBigint("id", { mode: "bigint" }).primaryKey(),
+    answeredAt: timestamp("answered_at"),
+    bandKey: text("band_key").notNull(),
+    correctMeaning: text("correct_meaning").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+    difficultyLevel: integer("difficulty_level"),
+    isCorrect: boolean("is_correct"),
+    itemIndex: integer("item_index").notNull(),
+    lg10wf: numeric("lg10wf"),
+    options: jsonb("options").$type<string[]>().notNull().default([]),
+    roundIndex: integer("round_index").notNull(),
+    selectedOption: text("selected_option"),
+    sessionId: pgBigint("session_id", { mode: "bigint" }).notNull().references(() => assessmentSessions.id),
+    updatedAt: timestamp("updated_at").notNull(),
+    word: text("word").notNull(),
+    wordId: pgBigint("word_id", { mode: "bigint" }).notNull().references(() => wordEntries.id),
+  },
+  (table) => ({
+    sessionRoundIdx: index("assessment_items_session_round_idx").on(table.sessionId, table.roundIndex, table.itemIndex),
+    wordIdx: index("assessment_items_word_idx").on(table.wordId),
   }),
 );
 

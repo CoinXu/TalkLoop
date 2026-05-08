@@ -1,9 +1,12 @@
-import { and, asc, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, notInArray, sql } from "drizzle-orm";
 import type { EntityId } from "../domain/EntityId.js";
 import type { AppDatabase } from "../infrastructure/database/Database.js";
 import {
+  annotationResults,
   annotationTasks,
   assessmentConfigs,
+  assessmentItems,
+  assessmentSessions,
   corpusScenes,
   corpusSentences,
   courseProgress,
@@ -21,6 +24,7 @@ import {
   userVocabularyEvents,
   wordActivationAttempts,
   wordEntries,
+  hearingTrapWords,
   wordSenses,
 } from "../infrastructure/database/schema.js";
 import type { SnowflakeIdGenerator } from "../infrastructure/SnowflakeIdGenerator.js";
@@ -29,7 +33,10 @@ export type SceneRow = typeof corpusScenes.$inferSelect;
 export type CourseRow = typeof courses.$inferSelect;
 export type SentenceRow = typeof corpusSentences.$inferSelect;
 export type AnnotationTaskRow = typeof annotationTasks.$inferSelect;
+export type AnnotationResultRow = typeof annotationResults.$inferSelect;
 export type AssessmentConfigRow = typeof assessmentConfigs.$inferSelect;
+export type AssessmentItemRow = typeof assessmentItems.$inferSelect;
+export type AssessmentSessionRow = typeof assessmentSessions.$inferSelect;
 export type UserVocabularyEntryRow = typeof userVocabularyEntries.$inferSelect;
 export type WordSenseRow = typeof wordSenses.$inferSelect;
 export type UserVocabularyWithWordRow = UserVocabularyEntryRow & { senses: WordSenseRow[]; wordEntry: WordRow };
@@ -38,6 +45,7 @@ export type DailyTaskItemRow = typeof dailyTaskItems.$inferSelect;
 export type ListenRepeatAttemptRow = typeof listenRepeatAttempts.$inferSelect;
 export type CourseReportRow = typeof courseReports.$inferSelect;
 export type WordRow = typeof wordEntries.$inferSelect;
+export type AssessmentWordRow = WordRow & { assessmentMeaning: string };
 
 export interface ListQuery {
   keyword?: string | undefined;
@@ -78,6 +86,27 @@ export interface CourseReportListQuery {
   minAverageAccuracy?: number | undefined;
   offset: number;
   userId?: string | undefined;
+}
+
+export interface AnnotationResultListQuery extends ListQuery {
+  algorithmVersion?: string | undefined;
+  maxConfidence?: number | undefined;
+  minConfidence?: number | undefined;
+  resultStatus?: string | undefined;
+  resultType?: string | undefined;
+  targetId?: EntityId | undefined;
+  targetType?: string | undefined;
+  taskId?: EntityId | undefined;
+  trapType?: string | undefined;
+}
+
+export interface AssessmentBandQuery {
+  difficultyLevel: number;
+  excludeWordIds?: EntityId[] | undefined;
+  limit: number;
+  maxLg10wf: number;
+  minLg10wf: number;
+  offset?: number | undefined;
 }
 
 type Patch<T> = Partial<Omit<T, "id" | "createdAt" | "updatedAt">>;
@@ -196,6 +225,87 @@ export class LearningActivationRepository {
     return this.updateReturning(annotationTasks, annotationTasks.id, id, patch);
   }
 
+  async findAnnotationTask(id: EntityId): Promise<AnnotationTaskRow | undefined> {
+    return this.db.query.annotationTasks.findFirst({ where: eq(annotationTasks.id, id) });
+  }
+
+  async listAnnotationResults(query: AnnotationResultListQuery): Promise<AnnotationResultRow[]> {
+    const filters = [];
+    if (query.resultStatus) filters.push(eq(annotationResults.resultStatus, query.resultStatus));
+    if (query.reviewStatus) filters.push(eq(annotationResults.resultStatus, query.reviewStatus));
+    if (query.resultType) filters.push(eq(annotationResults.resultType, query.resultType));
+    if (query.targetType) filters.push(eq(annotationResults.targetType, query.targetType));
+    if (query.targetId) filters.push(eq(annotationResults.targetId, query.targetId));
+    if (query.taskId) filters.push(eq(annotationResults.taskId, query.taskId));
+    if (query.trapType) filters.push(eq(annotationResults.trapType, query.trapType));
+    if (query.algorithmVersion) filters.push(eq(annotationResults.algorithmVersion, query.algorithmVersion));
+    if (query.minConfidence !== undefined) filters.push(sql`${annotationResults.confidence}::numeric >= ${query.minConfidence}`);
+    if (query.maxConfidence !== undefined) filters.push(sql`${annotationResults.confidence}::numeric <= ${query.maxConfidence}`);
+    return this.db
+      .select()
+      .from(annotationResults)
+      .where(filters.length > 0 ? and(...filters) : undefined)
+      .orderBy(desc(annotationResults.createdAt))
+      .limit(query.limit)
+      .offset(query.offset);
+  }
+
+  async createAnnotationResults(rows: Array<Omit<typeof annotationResults.$inferInsert, "id" | "createdAt" | "updatedAt">>): Promise<number> {
+    if (rows.length === 0) return 0;
+    const now = this.now();
+    const batchSize = 250;
+    for (let offset = 0; offset < rows.length; offset += batchSize) {
+      const batch = rows.slice(offset, offset + batchSize);
+      await this.db.insert(annotationResults).values(batch.map((row) => ({ ...row, createdAt: now, id: this.nextId(), updatedAt: now })));
+    }
+    return rows.length;
+  }
+
+  async updateAnnotationResult(id: EntityId, patch: Patch<typeof annotationResults.$inferInsert>) {
+    return this.updateReturning(annotationResults, annotationResults.id, id, patch);
+  }
+
+  async findAnnotationResultsByIds(ids: EntityId[]): Promise<AnnotationResultRow[]> {
+    if (ids.length === 0) return [];
+    return this.db.select().from(annotationResults).where(inArray(annotationResults.id, ids));
+  }
+
+  async bulkUpdateAnnotationResults(ids: EntityId[], patch: Patch<typeof annotationResults.$inferInsert>): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await this.db.update(annotationResults).set({ ...patch, updatedAt: this.now() }).where(inArray(annotationResults.id, ids));
+    return Number(result.rowCount ?? 0);
+  }
+
+  async annotationWordCandidates(input: { limit: number; offset: number; targetId?: EntityId | undefined }): Promise<Array<WordRow & { hearingTraps: Record<string, unknown>[] }>> {
+    const filters = [];
+    if (input.targetId) filters.push(eq(wordEntries.id, input.targetId));
+    const rows = await this.db
+      .select({ traps: hearingTrapWords.traps, word: wordEntries })
+      .from(wordEntries)
+      .leftJoin(hearingTrapWords, eq(hearingTrapWords.sourceWordId, wordEntries.id))
+      .where(filters.length > 0 ? and(...filters) : undefined)
+      .orderBy(asc(wordEntries.word))
+      .limit(input.limit)
+      .offset(input.offset);
+    return rows.map((row) => ({ ...row.word, hearingTraps: Array.isArray(row.traps) ? row.traps as Record<string, unknown>[] : [] }));
+  }
+
+  async annotationSentenceCandidates(input: { limit: number; offset: number; targetId?: EntityId | undefined }): Promise<SentenceRow[]> {
+    const filters = [];
+    if (input.targetId) filters.push(eq(corpusSentences.id, input.targetId));
+    return this.db
+      .select()
+      .from(corpusSentences)
+      .where(filters.length > 0 ? and(...filters) : undefined)
+      .orderBy(asc(corpusSentences.sortOrder), asc(corpusSentences.sentenceText))
+      .limit(input.limit)
+      .offset(input.offset);
+  }
+
+  async updateAnnotationWord(id: EntityId, patch: Partial<Pick<typeof wordEntries.$inferInsert, "distractors" | "levelTags" | "sceneTags">>) {
+    return this.updateReturning(wordEntries, wordEntries.id, id, patch);
+  }
+
   async listAssessmentConfigs(query: ListQuery & { version?: string | undefined }): Promise<AssessmentConfigRow[]> {
     const filters = [];
     if (query.status) filters.push(eq(assessmentConfigs.status, query.status));
@@ -216,6 +326,104 @@ export class LearningActivationRepository {
     return this.insertReturning(userAssessmentResults, input);
   }
 
+  async findActiveAssessmentSession(userId: string): Promise<AssessmentSessionRow | undefined> {
+    return this.db.query.assessmentSessions.findFirst({
+      where: and(eq(assessmentSessions.userId, userId), eq(assessmentSessions.status, "in_progress"), sql`${assessmentSessions.expiresAt} > now()`),
+      orderBy: desc(assessmentSessions.updatedAt),
+    });
+  }
+
+  async findAssessmentSession(id: EntityId): Promise<AssessmentSessionRow | undefined> {
+    return this.db.query.assessmentSessions.findFirst({ where: eq(assessmentSessions.id, id) });
+  }
+
+  async createAssessmentSession(input: Omit<typeof assessmentSessions.$inferInsert, "id" | "createdAt" | "updatedAt">): Promise<AssessmentSessionRow> {
+    return this.insertReturning(assessmentSessions, input);
+  }
+
+  async updateAssessmentSession(id: EntityId, patch: Patch<typeof assessmentSessions.$inferInsert>) {
+    return this.updateReturning(assessmentSessions, assessmentSessions.id, id, patch);
+  }
+
+  async createAssessmentItems(rows: Array<Omit<typeof assessmentItems.$inferInsert, "id" | "createdAt" | "updatedAt">>): Promise<number> {
+    if (rows.length === 0) return 0;
+    const now = this.now();
+    await this.db.insert(assessmentItems).values(rows.map((row) => ({ ...row, createdAt: now, id: this.nextId(), updatedAt: now }))).onConflictDoNothing();
+    return rows.length;
+  }
+
+  async listAssessmentItems(sessionId: EntityId): Promise<AssessmentItemRow[]> {
+    return this.db.select().from(assessmentItems).where(eq(assessmentItems.sessionId, sessionId)).orderBy(asc(assessmentItems.roundIndex), asc(assessmentItems.itemIndex));
+  }
+
+  async listAssessmentRoundItems(sessionId: EntityId, roundIndex: number): Promise<AssessmentItemRow[]> {
+    return this.db
+      .select()
+      .from(assessmentItems)
+      .where(and(eq(assessmentItems.sessionId, sessionId), eq(assessmentItems.roundIndex, roundIndex)))
+      .orderBy(asc(assessmentItems.itemIndex));
+  }
+
+  async updateAssessmentItem(id: EntityId, patch: Patch<typeof assessmentItems.$inferInsert>) {
+    return this.updateReturning(assessmentItems, assessmentItems.id, id, patch);
+  }
+
+  async assessmentQuestionCandidates(query: AssessmentBandQuery): Promise<AssessmentWordRow[]> {
+    const filters = [
+      eq(wordEntries.publishStatus, "published"),
+      eq(wordEntries.reviewStatus, "approved"),
+      eq(wordEntries.isExcluded, false),
+      sql`((${wordEntries.meaningCn} IS NOT NULL AND length(trim(${wordEntries.meaningCn})) > 0) OR EXISTS (SELECT 1 FROM word_senses WHERE word_senses.word_id = ${wordEntries.id}))`,
+      sql`${wordEntries.lg10wf} IS NOT NULL`,
+      sql`${wordEntries.lg10wf}::numeric >= ${query.minLg10wf}`,
+      sql`${wordEntries.lg10wf}::numeric < ${query.maxLg10wf}`,
+    ];
+    if (query.excludeWordIds?.length) filters.push(notInArray(wordEntries.id, query.excludeWordIds));
+    const rows = await this.db
+      .select()
+      .from(wordEntries)
+      .where(and(...filters))
+      .orderBy(desc(wordEntries.frequencyCount), asc(wordEntries.word))
+      .limit(query.limit)
+      .offset(query.offset ?? 0);
+    return this.withAssessmentMeanings(rows);
+  }
+
+  async assessmentDistractors(input: { difficultyLevel: number; excludeWordIds: EntityId[]; limit: number }): Promise<AssessmentWordRow[]> {
+    const filters = [
+      eq(wordEntries.publishStatus, "published"),
+      eq(wordEntries.reviewStatus, "approved"),
+      eq(wordEntries.isExcluded, false),
+      sql`((${wordEntries.meaningCn} IS NOT NULL AND length(trim(${wordEntries.meaningCn})) > 0) OR EXISTS (SELECT 1 FROM word_senses WHERE word_senses.word_id = ${wordEntries.id}))`,
+    ];
+    if (input.excludeWordIds.length) filters.push(notInArray(wordEntries.id, input.excludeWordIds));
+    const rows = await this.db
+      .select()
+      .from(wordEntries)
+      .where(and(...filters))
+      .orderBy(sql`random()`)
+      .limit(input.limit);
+    return this.withAssessmentMeanings(rows);
+  }
+
+  private async withAssessmentMeanings(rows: WordRow[]): Promise<AssessmentWordRow[]> {
+    if (rows.length === 0) return [];
+    const missing = rows.filter((row) => !row.meaningCn);
+    const senses = missing.length === 0
+      ? []
+      : await this.db
+        .select()
+        .from(wordSenses)
+        .where(inArray(wordSenses.wordId, missing.map((row) => row.id)))
+        .orderBy(wordSenses.wordId, wordSenses.senseIndex, wordSenses.definitionIndex);
+    const firstSenseByWordId = new Map<string, string>();
+    for (const sense of senses) {
+      const key = String(sense.wordId);
+      if (!firstSenseByWordId.has(key)) firstSenseByWordId.set(key, sense.definition);
+    }
+    return rows.map((row) => ({ ...row, assessmentMeaning: row.meaningCn ?? firstSenseByWordId.get(String(row.id)) ?? "" }));
+  }
+
   async publishedWordsForInitialVocabulary(limit: number): Promise<WordRow[]> {
     return this.db
       .select()
@@ -230,6 +438,24 @@ export class LearningActivationRepository {
       )
       .orderBy(desc(wordEntries.lg10wf), desc(wordEntries.frequencyCount))
       .limit(limit);
+  }
+
+  async publishedWordsForInitialVocabularyBoundary(input: { limit: number; maxDifficultyLevel: number; minLg10wf: number }): Promise<WordRow[]> {
+    return this.db
+      .select()
+      .from(wordEntries)
+      .where(
+        and(
+          eq(wordEntries.publishStatus, "published"),
+          eq(wordEntries.reviewStatus, "approved"),
+          eq(wordEntries.isExcluded, false),
+          sql`((${wordEntries.meaningCn} IS NOT NULL AND length(trim(${wordEntries.meaningCn})) > 0) OR EXISTS (SELECT 1 FROM word_senses WHERE word_senses.word_id = ${wordEntries.id}))`,
+          sql`${wordEntries.lg10wf} IS NOT NULL`,
+          sql`${wordEntries.lg10wf}::numeric >= ${input.minLg10wf}`,
+        ),
+      )
+      .orderBy(desc(wordEntries.lg10wf), desc(wordEntries.frequencyCount))
+      .limit(input.limit);
   }
 
   async listUserVocabulary(query: UserVocabularyListQuery): Promise<UserVocabularyWithWordRow[]> {
